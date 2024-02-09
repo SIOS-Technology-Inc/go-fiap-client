@@ -1,6 +1,6 @@
 module sios.com/gofiap
 
-go 1.21.6
+go 1.21.7
 
 require (
 	github.com/globusdigital/soap v1.4.0

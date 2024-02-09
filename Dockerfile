@@ -1,7 +1,7 @@
-FROM golang:1.21
+FROM golang:1.21.7
 
 RUN apt update \
-  && apt install -y vim # 不要な場合は削除してください
+  && apt install -y vim
 
 ENV GO111MODULE on
 WORKDIR /go/src/work
