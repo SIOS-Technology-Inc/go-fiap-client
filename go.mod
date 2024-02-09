@@ -3,7 +3,7 @@ module sios.com/gofiap
 go 1.21.6
 
 require (
-    github.com/globusdigital/soap v1.4.0
+	github.com/globusdigital/soap v1.4.0
 	github.com/cockroachdb/errors v1.11.1
 )
 
