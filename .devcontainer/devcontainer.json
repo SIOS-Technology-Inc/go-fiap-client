@@ -1,0 +1,28 @@
+{
+  "name": "go-fiap-client",
+  "dockerComposeFile": ["../docker-compose.yml"],
+  "service": "golang" ,
+  "workspaceFolder": "/go/src/work",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.shell.linux": "/bin/bash",
+        "go.toolsManagement.checkForUpdates": "off",
+        "go.gopath": "/go",
+        "go.gocodeAutoBuild": true,
+        "go.formatTool": "gofmt",
+        "go.useLanguageServer": true,
+        "editor.formatOnSave": false,
+        "[go]": {
+          "editor.formatOnSave": true
+        }
+      },
+      "extensions": [
+        "golang.go",
+        "premparihar.gotestexplorer",
+        "MS-CEINTL.vscode-language-pack-ja",
+        "quicktype.quicktype"
+      ]
+    }
+  }
+}
