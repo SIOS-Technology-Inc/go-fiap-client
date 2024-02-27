@@ -54,8 +54,6 @@ const (
 type Key struct {
 	XMLName xml.Name `xml:"http://gutp.jp/fiap/2009/11/ key"`
 
-	Key []*Key `xml:"key,omitempty" json:"key,omitempty"`
-
 	Id AnyURI `xml:"id,attr,omitempty" json:"id,omitempty"`
 
 	AttrName *AttrNameType `xml:"attrName,attr,omitempty" json:"attrName,omitempty"`
@@ -78,7 +76,8 @@ type Key struct {
 }
 
 type NonNegativeInteger uint
-// TODO: この型は正の整数のみを表すため、その値が正であることを保証するためには、その関数を実装する必要がある。
+// TODO: uintは符号なし整数を表すため、0を許容する
+// 0を許容しない場合は、関数の処理に注意が必要
 type PositiveInteger uint
 
 type Query struct {
