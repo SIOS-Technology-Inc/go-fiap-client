@@ -3,8 +3,8 @@ package fiap
 import (
 	"context"
 	"encoding/xml"
-	"time"
 	"github.com/hooklift/gowsdl/soap"
+	"time"
 )
 
 // against "unused imports"
@@ -76,6 +76,7 @@ type Key struct {
 }
 
 type NonNegativeInteger uint
+
 // TODO: uintは符号なし整数を表すため、0を許容する
 // 0を許容しない場合は、関数の処理に注意が必要
 type PositiveInteger uint
@@ -85,8 +86,8 @@ type Query struct {
 
 	Key []*Key `xml:"key,omitempty" json:"key,omitempty"`
 
-	Id *Uuid `xml:"id,attr,omitempty" json:"id,omitempty"`	
-	
+	Id *Uuid `xml:"id,attr,omitempty" json:"id,omitempty"`
+
 	Type *QueryType `xml:"type,attr,omitempty" json:"type,omitempty"`
 
 	Cursor *Uuid `xml:"cursor,attr,omitempty" json:"cursor,omitempty"`
@@ -100,7 +101,7 @@ type Query struct {
 	CallbackControl AnyURI `xml:"callbackControl,attr,omitempty" json:"callbackControl,omitempty"`
 }
 
-type Error struct{
+type Error struct {
 	Type *string `xml:"type,attr,omitempty" json:"type,omitempty"`
 }
 
@@ -119,7 +120,7 @@ type Header struct {
 
 type Value struct {
 	XMLName xml.Name `xml:"http://gutp.jp/fiap/2009/11/ value"`
-	
+
 	Time *time.Time `xml:"time,attr,omitempty" json:"time,omitempty"`
 
 	Value string `xml:",chardata" json:"value"`

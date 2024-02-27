@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"log"
 	"time"
+
 	"github.com/google/uuid"
 	"github.com/hooklift/gowsdl/soap"
+
+	"github.com/SIOS-Technology-Inc/go-fiap-client/pkg/fiap/model"
 )
 
 // TODO この関数は、fiapservice.go の動作テストのために作成したものです。後で削除します。
@@ -25,14 +28,14 @@ func TestGoWsdl() {
 
 	header := &Header{
 		Query: &Query{
-			Id: &myUuid,
+			Id:             &myUuid,
 			AcceptableSize: &val,
-			Type: &storage,
+			Type:           &storage,
 			Key: []*Key{
 				{
-					Id: "http://kurimoto/nukaya/vaisala/B-2/Temperature_TD",
+					Id:       "http://kurimoto/nukaya/vaisala/B-2/Temperature_TD",
 					AttrName: &attrTime,
-					Select: &selectType,
+					Select:   &selectType,
 				},
 			},
 		},
@@ -53,28 +56,28 @@ func TestGoWsdl() {
 
 	xmlBytes, err := xml.MarshalIndent(res, "", "  ")
 	if err != nil {
-			log.Fatal(err)
+		log.Fatal(err)
 	}
 	fmt.Println(string(xmlBytes))
 }
 
-// TODO option構造体の使い方について相談し、定義を確定する
-func Fetch(connectionURL string, keys []UserInputKey, option *FetchOption) (pointSets map[string]([]ProcessedPointSet), points map[string]([]ProcessedPoint), err error) {
+
+func Fetch(connectionURL string, keys []model.UserInputKey, option *model.FetchOption) (pointSets map[string]([]model.ProcessedPointSet), points map[string]([]model.ProcessedPoint), err error) {
 	// ...
 	return
 }
 
-func FetchRaw(connectionURL string, keys []UserInputKey, option *FetchOption) (raw string, err error) {
+func FetchRaw(connectionURL string, keys []model.UserInputKey, option *model.FetchOption) (raw string, err error) {
 	// ...
 	return
 }
 
-func FetchOnce(connectionURL string, keys []UserInputKey, option *FetchOnceOption) (pointSets map[string]([]ProcessedPointSet), points map[string]([]ProcessedPoint), cursor string, err error) {
+func FetchOnce(connectionURL string, keys []model.UserInputKey, option *model.FetchOnceOption) (pointSets map[string]([]model.ProcessedPointSet), points map[string]([]model.ProcessedPoint), cursor string, err error) {
 	// ...
 	return
 }
 
-func FetchRawOnce(connectionURL string, keys []UserInputKey, option *FetchOnceOption) (raw string, cursor string, err error) {
+func FetchRawOnce(connectionURL string, keys []model.UserInputKey, option *model.FetchOnceOption) (raw string, cursor string, err error) {
 	// ...
 	return
 }
@@ -89,12 +92,12 @@ func FetchOldest(connectionURL string, ids ...string) (datas map[string]string, 
 	return
 }
 
-func FetchDateRange(connectionURL string, fromDate time.Time, untilDate time.Time, option *FetchOption) (pointSets map[string]([]ProcessedPointSet), points map[string]([]ProcessedPoint), err error) {
+func FetchDateRange(connectionURL string, fromDate time.Time, untilDate time.Time, option *model.FetchOption) (pointSets map[string]([]model.ProcessedPointSet), points map[string]([]model.ProcessedPoint), err error) {
 	// ...
 	return
 }
 
-func FetchByIdsWithKey(connectionURL string, key UserInputKey, option *FetchOption, ids ...string) (pointSets map[string]([]ProcessedPointSet), points map[string]([]ProcessedPoint), err error) {
+func FetchByIdsWithKey(connectionURL string, key model.UserInputKey, option *model.FetchOption, ids ...string) (pointSets map[string]([]model.ProcessedPointSet), points map[string]([]model.ProcessedPoint), err error) {
 	// ...
 	return
 }
