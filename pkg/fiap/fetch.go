@@ -9,32 +9,7 @@ import (
 	"github.com/hooklift/gowsdl/soap"
 )
 
-type UserInputKey struct {
-	ID 				  		string
-	Eq							time.Time
-	Neq   					time.Time
-	Lt    					time.Time
-	Gt							time.Time
-	Lteq						time.Time
-	Gteq						time.Time
-	MinMaxIndicator	string
-}
-
-
-type ProcessedValue struct {
-	Time  					time.Time			`json:"time"`
-	Value						string				`json:"value"`
-}
-
-type ProcessedPoint struct {
-	Values					[]Value			`json:"values"`
-}
-
-type ProcessedPointSet struct {
-	PointSetID			string			`json:"point_set_id"`
-	PointID					string			`json:"point_id"`
-}
-
+// TODO この関数は、fiapservice.go の動作テストのために作成したものです。後で削除します。
 func TestGoWsdl() {
 	client := soap.NewClient("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage")
 	service := NewFIAPServiceSoap(client)
@@ -83,35 +58,43 @@ func TestGoWsdl() {
 	fmt.Println(string(xmlBytes))
 }
 
-func Fetch() {
-	// ...
-}
-
-func FetchRaw() {
-	// ...
-}
-
-func FetchOnce(acceptableSize *int, cursor Uuid, keys []UserInputKey) (raw string, err error){
+// TODO option構造体の使い方について相談し、定義を確定する
+func Fetch(connectionURL string, keys []UserInputKey, option *FetchOption) (pointSets map[string]([]ProcessedPointSet), points map[string]([]ProcessedPoint), err error) {
 	// ...
 	return
 }
 
-func FetchRawOnce() {
+func FetchRaw(connectionURL string, keys []UserInputKey, option *FetchOption) (raw string, err error) {
 	// ...
+	return
 }
 
-func FetchLatest() {
+func FetchOnce(connectionURL string, keys []UserInputKey, option *FetchOnceOption) (pointSets map[string]([]ProcessedPointSet), points map[string]([]ProcessedPoint), cursor string, err error) {
 	// ...
+	return
 }
 
-func FetchOldest() {
+func FetchRawOnce(connectionURL string, keys []UserInputKey, option *FetchOnceOption) (raw string, cursor string, err error) {
 	// ...
+	return
 }
 
-func FetchDateRange() {
+func FetchLatest(connectionURL string, ids ...string) (datas map[string]string, err error) {
 	// ...
+	return
 }
 
-func FetchByIdsWithKey() {
+func FetchOldest(connectionURL string, ids ...string) (datas map[string]string, err error) {
 	// ...
+	return
+}
+
+func FetchDateRange(connectionURL string, fromDate time.Time, untilDate time.Time, option *FetchOption) (pointSets map[string]([]ProcessedPointSet), points map[string]([]ProcessedPoint), err error) {
+	// ...
+	return
+}
+
+func FetchByIdsWithKey(connectionURL string, key UserInputKey, option *FetchOption, ids ...string) (pointSets map[string]([]ProcessedPointSet), points map[string]([]ProcessedPoint), err error) {
+	// ...
+	return
 }
