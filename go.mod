@@ -6,17 +6,16 @@ require (
 	github.com/cockroachdb/errors v1.11.1
 	github.com/globusdigital/soap v1.4.0
 	github.com/google/uuid v1.3.0
+
+	// TODO : github.com/globusdigital/soap ライブラリを使用する処理を追加し、以下のライブラリを削除する
 	github.com/hooklift/gowsdl v0.5.0
 )
 
 require (
-	github.com/stretchr/testify v1.8.4 // indirect
 	github.com/cockroachdb/logtags v0.0.0-20230118201751-21c54148d20b // indirect
 	github.com/cockroachdb/redact v1.1.5 // indirect
 	github.com/getsentry/sentry-go v0.18.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
-	github.com/google/uuid v1.3.0 // indirect
-	github.com/hooklift/gowsdl v0.5.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
