@@ -3,7 +3,7 @@ package fiap
 import (
 	"context"
 	"encoding/xml"
-	"github.com/hooklift/gowsdl/soap"
+	"github.com/globusdigital/soap"
 	"time"
 )
 
@@ -206,7 +206,7 @@ func NewFIAPServiceSoap(client *soap.Client) FIAPServiceSoap {
 
 func (service *fIAPServiceSoap) QueryContext(ctx context.Context, request *QueryRQ) (*QueryRS, error) {
 	response := new(QueryRS)
-	err := service.client.CallContext(ctx, "http://soap.fiap.org/query", request, response)
+	_, err := service.client.Call(ctx, "http://soap.fiap.org/query", request, response)
 	if err != nil {
 		return nil, err
 	}
@@ -223,7 +223,7 @@ func (service *fIAPServiceSoap) Query(request *QueryRQ) (*QueryRS, error) {
 
 func (service *fIAPServiceSoap) DataContext(ctx context.Context, request *DataRQ) (*DataRS, error) {
 	response := new(DataRS)
-	err := service.client.CallContext(ctx, "http://soap.fiap.org/data", request, response)
+	_, err := service.client.Call(ctx, "http://soap.fiap.org/data", request, response)
 	if err != nil {
 		return nil, err
 	}
