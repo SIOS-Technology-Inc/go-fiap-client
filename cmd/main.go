@@ -1,8 +1,25 @@
 package main
 
-import "github.com/SIOS-Technology-Inc/go-fiap-client/pkg/fiap"
+import (
+	"github.com/SIOS-Technology-Inc/go-fiap-client/pkg/fiap"
+	"github.com/SIOS-Technology-Inc/go-fiap-client/pkg/fiap/model"
+)
 
 func main() {
-	// この関数の呼び出しは、fiapservice.go の動作テストのために作成したものです。後で削除します。
-	fiap.TestGoWsdl()
+	
+	// FetchRawOnce関数の呼び出し
+	key := []model.UserInputKey{
+		{
+			ID:              "http://kurimoto/nukaya/vaisala/B-2/Temperature_TD",
+			MinMaxIndicator: "maximum",
+		},
+	}
+
+	acceptableSize := 1000
+	fiap.FetchRawOnce(
+		"http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",
+		key,
+		&model.FetchOnceOption{
+			AcceptableSize: &acceptableSize,
+		})
 }
