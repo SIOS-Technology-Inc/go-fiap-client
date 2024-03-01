@@ -25,49 +25,21 @@ func FetchRaw(connectionURL string, keys []model.UserInputKey, option *model.Fet
 }
 
 func FetchOnce(connectionURL string, keys []model.UserInputKey, option *model.FetchOnceOption) (pointSets map[string]([]model.ProcessedPointSet), points map[string]([]model.ProcessedPoint), cursor string, err error) {
-	// ...
-	return
+	res, err := fetchStructOnce(connectionURL, keys, option)
+	
+	if err != nil {
+		return nil, nil, "", err	
+	}
+	if cursor == "" {
+		points, pointSet, err := RawQueryRSToProcessedDatas(res)
+
+		return pointSets, nil, "", nil
+	}
+
 }
 
 func FetchRawOnce(connectionURL string, keys []model.UserInputKey, option *model.FetchOnceOption) (raw string, cursor string, err error) {
-	// クライアントを作成
-	client := soap.NewClient(connectionURL, nil)
-	service := NewFIAPServiceSoap(client)
-
-	// デフォルト値の設定
-	if option == nil {
-		option = &model.FetchOnceOption{}
-	}
-	if option.AcceptableSize == nil {
-		*option.AcceptableSize = 1000
-	}
-
-	var val PositiveInteger = PositiveInteger(*option.AcceptableSize)
-
-	// 入力チェック
-	if connectionURL == "" {
-		return "", "", fmt.Errorf("connectionURL is empty")
-	}
-	if !regexp.MustCompile(`^https?://`).Match([]byte(connectionURL)) {
-		return "", "", fmt.Errorf("invalid connectionURL: %s", connectionURL)
-	}
-	if len(keys) == 0 {
-		return "", "", fmt.Errorf("keys is empty")
-	}
-	for _, key := range keys {
-		if key.ID == "" {
-			return "", "", fmt.Errorf("keys.ID is empty")
-		}
-	}
-	if option.Cursor != nil && !IsUUID(option.Cursor) {
-		return "", "", fmt.Errorf("cursor must be entered in UUID format. example: '123e4567-e89b-12d3-a456-426614174000'")
-	}
-
-	// クエリを作成
-	queryRQ := CreateQueryRQ(val, option, keys)
-
-	res, err := service.Query(queryRQ)
-	
+	res, err := fetchStructOnce(connectionURL, keys, option)
 	// エラーがあればログを出力して終了
 	if err != nil {
 		log.Fatalf("couldn't get point data: %v", err)
@@ -90,6 +62,50 @@ func FetchRawOnce(connectionURL string, keys []model.UserInputKey, option *model
 	} else {
 		return string(xmlBytes), "", err
 	}
+}
+
+func fetchStructOnce(connectionURL string, keys []model.UserInputKey, option *model.FetchOnceOption) (res *QueryRS, err error) {
+	// クライアントを作成
+	client := soap.NewClient(connectionURL, nil)
+	service := NewFIAPServiceSoap(client)
+
+	// デフォルト値の設定
+	if option == nil {
+		option = &model.FetchOnceOption{}
+	}
+	if option.AcceptableSize == nil {
+		*option.AcceptableSize = 1000
+	}
+
+	var val PositiveInteger = PositiveInteger(*option.AcceptableSize)
+
+	// 入力チェック
+	if connectionURL == "" {
+		return nil, fmt.Errorf("connectionURL is empty")
+	}
+	if !regexp.MustCompile(`^https?://`).Match([]byte(connectionURL)) {
+		return nil, fmt.Errorf("invalid connectionURL: %s", connectionURL)
+	}
+	if len(keys) == 0 {
+		return nil, fmt.Errorf("keys is empty")
+	}
+	for _, key := range keys {
+		if key.ID == "" {
+			return nil, fmt.Errorf("keys.ID is empty")
+		}
+	}
+	if option.Cursor != nil && !IsUUID(option.Cursor) {
+		return nil, fmt.Errorf("cursor must be entered in UUID format. example: '123e4567-e89b-12d3-a456-426614174000'")
+	}
+
+	// クエリを作成
+	queryRQ := CreateQueryRQ(val, option, keys)
+
+	// クエリを実行
+	res, err = service.Query(queryRQ)	
+
+	// エラーがあればログを出力して終了
+	return res, err
 }
 
 func FetchLatest(connectionURL string, ids ...string) (datas map[string]string, err error) {
