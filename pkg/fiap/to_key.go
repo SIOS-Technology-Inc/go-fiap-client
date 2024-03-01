@@ -8,12 +8,12 @@ func UserInputKeyToKeyp(uk model.UserInputKey) *Key {
 	k := Key{
 		Id: AnyURI(uk.ID),
 		AttrName: AttrNameTypep(AttrNameTypeTime),
-		Eq: CheckAndConvertTime(uk.Eq),
-		Neq: CheckAndConvertTime(uk.Neq),
-		Lt: CheckAndConvertTime(uk.Lt),
-		Gt: CheckAndConvertTime(uk.Gt),
-		Lteq: CheckAndConvertTime(uk.Lteq),
-		Gteq: CheckAndConvertTime(uk.Gteq),
+		Eq: TimeToString(uk.Eq),
+		Neq: TimeToString(uk.Neq),
+		Lt: TimeToString(uk.Lt),
+		Gt: TimeToString(uk.Gt),
+		Lteq: TimeToString(uk.Lteq),
+		Gteq: TimeToString(uk.Gteq),
 		Select: SelectTypep(SelectType(uk.MinMaxIndicator)),
 	}
 	return &k

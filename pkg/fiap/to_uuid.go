@@ -4,7 +4,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func Uuidp(uu uuid.UUID) *Uuid {
+func GoogleUuidToUuidp(uu uuid.UUID) *Uuid {
 	us := Uuid(uu.String())
 	return &us
 }

@@ -13,7 +13,7 @@ func CreateQueryRQ (val PositiveInteger, option *model.FetchOnceOption, keys []m
 		Transport: &Transport{
 			Header: &Header{
 				Query: &Query{
-					Id: Uuidp(uuidObj),
+					Id: GoogleUuidToUuidp(uuidObj),
 					AcceptableSize: AcceptableSizep(val),
 					Type: QueryTypep(QueryTypeStorage),
 					Cursor: CursorStrpToUuidp(option.Cursor),
