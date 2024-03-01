@@ -12,6 +12,6 @@ type ProcessedPoint struct {
 }
 
 type ProcessedPointSet struct {
-	PointSetID string `json:"point_set_id"`
-	PointID    string `json:"point_id"`
+	PointSetID []string `json:"point_set_id"`
+	PointID    []string `json:"point_ids"`
 }
