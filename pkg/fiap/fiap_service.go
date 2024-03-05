@@ -1,9 +1,7 @@
 package fiap
 
 import (
-	"context"
 	"encoding/xml"
-	"github.com/globusdigital/soap"
 	"time"
 )
 
@@ -182,58 +180,4 @@ type DataRS struct {
 	XMLName xml.Name `xml:"http://soap.fiap.org/ dataRS"`
 
 	Transport *Transport `xml:"transport,omitempty" json:"transport,omitempty"`
-}
-
-type FIAPServiceSoap interface {
-	Query(request *QueryRQ) (*QueryRS, error)
-
-	QueryContext(ctx context.Context, request *QueryRQ) (*QueryRS, error)
-
-	Data(request *DataRQ) (*DataRS, error)
-
-	DataContext(ctx context.Context, request *DataRQ) (*DataRS, error)
-}
-
-type fIAPServiceSoap struct {
-	client *soap.Client
-}
-
-func NewFIAPServiceSoap(client *soap.Client) FIAPServiceSoap {
-	return &fIAPServiceSoap{
-		client: client,
-	}
-}
-
-func (service *fIAPServiceSoap) QueryContext(ctx context.Context, request *QueryRQ) (*QueryRS, error) {
-	response := new(QueryRS)
-	_, err := service.client.Call(ctx, "http://soap.fiap.org/query", request, response)
-	if err != nil {
-		return nil, err
-	}
-
-	return response, nil
-}
-
-func (service *fIAPServiceSoap) Query(request *QueryRQ) (*QueryRS, error) {
-	return service.QueryContext(
-		context.Background(),
-		request,
-	)
-}
-
-func (service *fIAPServiceSoap) DataContext(ctx context.Context, request *DataRQ) (*DataRS, error) {
-	response := new(DataRS)
-	_, err := service.client.Call(ctx, "http://soap.fiap.org/data", request, response)
-	if err != nil {
-		return nil, err
-	}
-
-	return response, nil
-}
-
-func (service *fIAPServiceSoap) Data(request *DataRQ) (*DataRS, error) {
-	return service.DataContext(
-		context.Background(),
-		request,
-	)
 }
