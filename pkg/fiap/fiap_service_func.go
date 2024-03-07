@@ -10,7 +10,7 @@ import (
 	"github.com/globusdigital/soap"
 )
 
-func fiapFetch(connectionURL string, keys []model.UserInputKey, option *model.FetchOnceOption) (raw *http.Response, res *QueryRS, err error) {
+func fiapFetch(connectionURL string, keys []model.UserInputKey, option *model.FetchOnceOption) (httpResponse *http.Response, resBody *QueryRS, err error) {
 	// クライアントを作成
 	client := soap.NewClient(connectionURL, nil)
 
@@ -45,15 +45,16 @@ func fiapFetch(connectionURL string, keys []model.UserInputKey, option *model.Fe
 
 	// クエリを作成
 	queryRQ := CreateQueryRQ(val, option, keys)
-	response := new(QueryRS)
+	response := &QueryRS{}
 
 	// クエリを実行
-	raw, err = client.Call(context.Background(), "http://soap.fiap.org/query", queryRQ, response)
+	httpResponse, err = client.Call(context.Background(), "http://soap.fiap.org/query", queryRQ, response)
 
 	// エラーがあればエラーを返す
 	if err != nil {
 		return nil, nil, err
 	}
+
 	// エラーがなければ結果を返す
-	return raw, response, nil
+	return httpResponse, resBody, nil
 }
