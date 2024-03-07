@@ -16,7 +16,8 @@ func main() {
 	}
 
 	acceptableSize := 1000
-	fiap.FetchRawOnce(
+	
+	fiap.FetchOnce(
 		"http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",
 		key,
 		&model.FetchOnceOption{
