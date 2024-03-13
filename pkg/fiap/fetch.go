@@ -14,21 +14,21 @@ func Fetch(connectionURL string, keys []model.UserInputKey, option *model.FetchO
 }
 
 
-// func FetchOnce(connectionURL string, keys []model.UserInputKey, option *model.FetchOnceOption) (pointSets map[string](model.ProcessedPointSet), points map[string](model.ProcessedPoint), cursor string, err error) {
-// 	_, body, err := fiapFetch(connectionURL, keys, option)
-	
-// 	if err != nil {
-// 		return nil, nil, "", err	
-// 	}
-// 	if cursor == "" {
-// 		points, pointSets, err := RawQueryRSToProcessedDatas(body)
-// 		if err != nil {
-// 			return nil, nil, "", err
-// 		}
-// 		return pointSets, points, "", nil
-// 	}
-// 	return
-// }
+func FetchOnce(connectionURL string, keys []model.UserInputKey, option *model.FetchOnceOption) (pointSets map[string](model.ProcessedPointSet), points map[string](model.ProcessedPoint), cursor string, err error) {
+	_, body, err := fiapFetch(connectionURL, keys, option)
+	if err != nil {
+		return nil, nil, "", err	
+	}
+
+	pointSets, points, cursor, err = QueryRSToProcessedDatas(body)
+	if err != nil {
+		return nil, nil, "", err
+	} else if cursor == "" {
+		return pointSets, points, "", nil
+	} else {
+		return pointSets, points, cursor, nil
+	}
+}
 
 
 func FetchLatest(connectionURL string, ids ...string) (datas map[string]string, err error) {
