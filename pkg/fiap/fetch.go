@@ -9,8 +9,45 @@ import (
 
 
 func Fetch(connectionURL string, keys []model.UserInputKey, option *model.FetchOption) (pointSets map[string](model.ProcessedPointSet), points map[string](model.ProcessedPoint), err error) {
-	// ...
-	return
+	pointSets = make(map[string](model.ProcessedPointSet))
+  points = make(map[string](model.ProcessedPoint))
+	
+	// cursorの初期化
+	cursor := ""
+	// 初回のFetchOnceを実行
+	fetchOnceOption := &model.FetchOnceOption{AcceptableSize: option.AcceptableSize, Cursor: &cursor}
+	fetchOncePointSets, fetchOncePoints, cursor, err := FetchOnce(connectionURL, keys, fetchOnceOption)
+	if err != nil {
+		return nil, nil, err
+	}
+	// pointSetsとpointsにデータを追加
+	for key, value := range fetchOncePointSets {
+		pointSets[key] = value
+	}
+	for key, value := range fetchOncePoints {
+		points[key] = value
+	}
+
+	// cursorが空でない限り、繰り返し処理を行う
+	for cursor != "" {
+		// FetchOnceを実行
+		fetchOnceOption := &model.FetchOnceOption{AcceptableSize: option.AcceptableSize,	Cursor: &cursor}
+		fetchOncePointSets, fetchOncePoints, cursor, err := FetchOnce(connectionURL, keys, fetchOnceOption)
+		if err != nil {
+			return nil, nil, err
+		}
+		// pointSetsとpointsにデータを追加
+		for key, value := range fetchOncePointSets {
+			pointSets[key] = value
+		}
+		for key, value := range fetchOncePoints {
+			points[key] = value
+		}
+		if cursor == "" {
+			break
+		}
+	}
+	return pointSets, points, nil
 }
 
 
