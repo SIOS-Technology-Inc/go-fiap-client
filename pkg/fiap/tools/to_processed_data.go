@@ -1,4 +1,4 @@
-package fiap
+package tools
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 	"github.com/SIOS-Technology-Inc/go-fiap-client/pkg/fiap/model"
 )
 
-func QueryRSToProcessedDatas(data *QueryRS) (pointSets map[string](model.ProcessedPointSet), points map[string](model.ProcessedPoint), cursor string, err error){
+func ProcessQueryRS(data *model.QueryRS) (pointSets map[string](model.ProcessedPointSet), points map[string](model.ProcessedPoint), cursor string, err error){
 	// エラー処理
 	if data == nil {
 		return nil, nil, "", fmt.Errorf("QueryRS is nil")

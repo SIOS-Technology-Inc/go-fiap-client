@@ -1,4 +1,4 @@
-package fiap
+package model
 
 import (
 	"encoding/xml"
