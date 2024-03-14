@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/SIOS-Technology-Inc/go-fiap-client/pkg/fiap/model"
-	"github.com/SIOS-Technology-Inc/go-fiap-client/pkg/fiap/tools"
 )
 
 
@@ -58,7 +57,7 @@ func FetchOnce(connectionURL string, keys []model.UserInputKey, option *model.Fe
 		return nil, nil, "", err	
 	}
 
-	pointSets, points, cursor, err = tools.ProcessQueryRS(body)
+	pointSets, points, cursor, err = ProcessQueryRS(body)
 	if err != nil {
 		return nil, nil, "", err
 	} else if cursor == "" {

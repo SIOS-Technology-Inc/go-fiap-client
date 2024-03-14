@@ -45,7 +45,7 @@ func fiapFetch(connectionURL string, keys []model.UserInputKey, option *model.Fe
 	}
 
 	// クエリを作成
-	queryRQ := tools.CreateQueryRQ(val, option, keys)
+	queryRQ := CreateQueryRQ(val, option, keys)
 	response := &model.QueryRS{}
 
 	// クエリを実行
