@@ -66,20 +66,51 @@ func FetchOnce(connectionURL string, keys []model.UserInputKey, option *model.Fe
 	}
 }
 
-func FetchByIdsWithKey(connectionURL string, key model.UserInputKey, option *model.FetchOption, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string](model.ProcessedPoint), err error) {
-	// ...
-	return
+func FetchByIdsWithKey(connectionURL string, key model.UserInputKeyNoID, option *model.FetchOption, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string](model.ProcessedPoint), err error) {
+	// Fetchのためのキーを作成
+	var keys []model.UserInputKey
+	for _, id := range ids {
+		keys = append(keys, model.UserInputKey{
+			ID: id,
+			Eq: key.Eq,
+			Neq: key.Neq,
+			Lt: key.Lt,
+			Gt: key.Gt,
+			Lteq: key.Lteq,
+			Gteq: key.Gteq,
+			MinMaxIndicator: key.MinMaxIndicator,
+		})
+	}
+	// Fetchを実行
+	pointSets, points, err = Fetch(connectionURL, keys, option)
+	return pointSets, points, err
 }
 
 
 func FetchLatest(connectionURL string, ids ...string) (datas map[string]string, err error) {
-	// ...
-	return
+	var points map[string]model.ProcessedPoint
+	_, points, err = FetchByIdsWithKey(connectionURL, model.UserInputKeyNoID{MinMaxIndicator: "maximum"}, &model.FetchOption{}, ids...)
+	if err != nil {
+		return nil, err
+	}
+	datas = make(map[string]string)
+	for id, point := range points {
+		datas[id] = point.Values[0].Value
+	}
+	return datas, nil
 }
 
 func FetchOldest(connectionURL string, ids ...string) (datas map[string]string, err error) {
-	// ...
-	return
+	var points map[string]model.ProcessedPoint
+	_, points, err = FetchByIdsWithKey(connectionURL, model.UserInputKeyNoID{MinMaxIndicator: "minimum"}, &model.FetchOption{}, ids...)
+	if err != nil {
+		return nil, err
+	}
+	datas = make(map[string]string)
+	for id, point := range points {
+		datas[id] = point.Values[0].Value
+	}
+	return datas, nil
 }
 
 func FetchDateRange(connectionURL string, fromDate time.Time, untilDate time.Time, option *model.FetchOption) (pointSets map[string](model.ProcessedPointSet), points map[string](model.ProcessedPoint), err error) {
