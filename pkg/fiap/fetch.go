@@ -113,9 +113,12 @@ func FetchOldest(connectionURL string, ids ...string) (datas map[string]string, 
 	return datas, nil
 }
 
-func FetchDateRange(connectionURL string, fromDate time.Time, untilDate time.Time, option *model.FetchOption) (pointSets map[string](model.ProcessedPointSet), points map[string](model.ProcessedPoint), err error) {
-	// ...
-	return
+func FetchDateRange(connectionURL string, fromDate time.Time, untilDate time.Time, option *model.FetchOption, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string](model.ProcessedPoint), err error) {
+	pointSets, points, err = FetchByIdsWithKey(connectionURL, model.UserInputKeyNoID{Gteq: fromDate, Lteq: untilDate}, &model.FetchOption{}, ids...)
+	if err != nil {
+		return nil, nil, err
+	}
+	return pointSets, points, nil
 }
 
 func ProcessQueryRS(data *model.QueryRS) (pointSets map[string](model.ProcessedPointSet), points map[string](model.ProcessedPoint), cursor string, err error){
