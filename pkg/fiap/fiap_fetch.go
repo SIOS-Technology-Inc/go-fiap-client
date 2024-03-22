@@ -28,29 +28,24 @@ func fiapFetch(connectionURL string, keys []model.UserInputKey, option *model.Fe
 	// 入力チェック
 	if connectionURL == "" {
 		err = errors.New("connectionURL is empty")
-		err = errors.WithStack(err)
 		return nil, nil, err
 	}
 	if !regexp.MustCompile(`^https?://`).Match([]byte(connectionURL)) {
 		err = errors.New("invalid connectionURL")
-		err = errors.WithStack(err)
 		return nil, nil, err
 	}
 	if len(keys) == 0 {
 		err = errors.New("keys is empty")
-		err = errors.WithStack(err)
 		return nil, nil, err
 	}
 	for _, key := range keys {
 		if key.ID == "" {
 			err = errors.New("keys.ID is empty")
-			err = errors.WithStack(err)
 			return nil, nil, err
 		}
 	}
 	if option.Cursor != nil && !tools.IsUUID(option.Cursor) {
 		err = errors.New("cursor must be entered in UUID format. example: '123e4567-e89b-12d3-a456-426614174000'")
-		err = errors.WithStack(err)
 		return nil, nil, err
 	}
 
@@ -62,7 +57,6 @@ func fiapFetch(connectionURL string, keys []model.UserInputKey, option *model.Fe
 	httpResponse, err = client.Call(context.Background(), "http://soap.fiap.org/query", queryRQ, resBody)
 	if err != nil {
 		err = errors.Wrap(err, "client.Call error")
-		err = errors.WithStack(err)
 		return nil, nil, err
 	}
 
