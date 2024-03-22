@@ -24,8 +24,6 @@ func fiapFetch(connectionURL string, keys []model.UserInputKey, option *model.Fe
 		*option.AcceptableSize = 1000
 	}
 
-	var val model.PositiveInteger = model.PositiveInteger(*option.AcceptableSize)
-
 	// 入力チェック
 	if connectionURL == "" {
 		return nil, nil, fmt.Errorf("connectionURL is empty")
@@ -46,7 +44,7 @@ func fiapFetch(connectionURL string, keys []model.UserInputKey, option *model.Fe
 	}
 
 	// クエリを作成
-	queryRQ := CreateQueryRQ(val, option, keys)
+	queryRQ := CreateQueryRQ(option, keys)
 	resBody = &model.QueryRS{}
 
 	// クエリを実行
@@ -61,9 +59,11 @@ func fiapFetch(connectionURL string, keys []model.UserInputKey, option *model.Fe
 	return httpResponse, resBody, nil
 }
 
-func CreateQueryRQ (val model.PositiveInteger, option *model.FetchOnceOption, keys []model.UserInputKey) *model.QueryRQ {
+func CreateQueryRQ (option *model.FetchOnceOption, keys []model.UserInputKey) *model.QueryRQ {
 	var uuidObj uuid.UUID
 	uuidObj, _ = uuid.NewRandom()
+
+	val := model.PositiveInteger(*option.AcceptableSize)
 	
 	queryRQ := &model.QueryRQ{
 		Transport: &model.Transport{
@@ -73,7 +73,7 @@ func CreateQueryRQ (val model.PositiveInteger, option *model.FetchOnceOption, ke
 					AcceptableSize: tools.AcceptableSizep(val),
 					Type: tools.QueryTypep(model.QueryTypeStorage),
 					Cursor: tools.CursorStrpToUuidp(option.Cursor),
-					Key: tools.UserInputKeysToKeysp(keys),
+					Key: tools.UserInputKeyspToKeysp(keys),
 				},
 			},
 		},

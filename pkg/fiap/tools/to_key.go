@@ -4,25 +4,21 @@ import (
 	"github.com/SIOS-Technology-Inc/go-fiap-client/pkg/fiap/model"
 )
 
-func UserInputKeyToKeyp(uk model.UserInputKey) *model.Key {
-	k := model.Key{
-		Id: model.AnyURI(uk.ID),
-		AttrName: AttrNameTypep(model.AttrNameTypeTime),
-		Eq: TimeToString(uk.Eq),
-		Neq: TimeToString(uk.Neq),
-		Lt: TimeToString(uk.Lt),
-		Gt: TimeToString(uk.Gt),
-		Lteq: TimeToString(uk.Lteq),
-		Gteq: TimeToString(uk.Gteq),
-		Select: SelectTypep(model.SelectType(uk.MinMaxIndicator)),
-	}
-	return &k
-}
-
-func UserInputKeysToKeysp(uk []model.UserInputKey) []*model.Key {
+func UserInputKeyspToKeysp(ks []model.UserInputKey) []*model.Key {
 	var keys []*model.Key
-	for _, k := range uk {
-		keys = append(keys, UserInputKeyToKeyp(k))
+	for _, k := range ks {
+		key := model.Key{
+			Id: model.AnyURI(k.ID),
+			AttrName: AttrNameTypep(model.AttrNameTypeTime),
+			Eq: TimeToString(k.Eq),
+			Neq: TimeToString(k.Neq),
+			Lt: TimeToString(k.Lt),
+			Gt: TimeToString(k.Gt),
+			Lteq: TimeToString(k.Lteq),
+			Gteq: TimeToString(k.Gteq),
+			Select: SelectTypep(model.SelectType(*k.MinMaxIndicator)),
+		}
+		keys = append(keys, &key)
 	}
 	return keys
 }

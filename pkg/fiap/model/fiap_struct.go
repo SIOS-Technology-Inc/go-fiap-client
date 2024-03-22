@@ -56,17 +56,17 @@ type Key struct {
 
 	AttrName *AttrNameType `xml:"attrName,attr,omitempty" json:"attrName,omitempty"`
 
-	Eq string `xml:"eq,attr,omitempty" json:"eq,omitempty"`
+	Eq *string `xml:"eq,attr,omitempty" json:"eq,omitempty"`
 
-	Neq string `xml:"neq,attr,omitempty" json:"neq,omitempty"`
+	Neq *string `xml:"neq,attr,omitempty" json:"neq,omitempty"`
 
-	Lt string `xml:"lt,attr,omitempty" json:"lt,omitempty"`
+	Lt *string `xml:"lt,attr,omitempty" json:"lt,omitempty"`
 
-	Gt string `xml:"gt,attr,omitempty" json:"gt,omitempty"`
+	Gt *string `xml:"gt,attr,omitempty" json:"gt,omitempty"`
 
-	Lteq string `xml:"lteq,attr,omitempty" json:"lteq,omitempty"`
+	Lteq *string `xml:"lteq,attr,omitempty" json:"lteq,omitempty"`
 
-	Gteq string `xml:"gteq,attr,omitempty" json:"gteq,omitempty"`
+	Gteq *string `xml:"gteq,attr,omitempty" json:"gteq,omitempty"`
 
 	Select *SelectType `xml:"select,attr,omitempty" json:"select,omitempty"`
 

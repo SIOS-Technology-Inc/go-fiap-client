@@ -6,6 +6,10 @@ func Intp(i int) *int {
 	return &i
 }
 
+func Stringp(s string) *string {
+	return &s
+}
+
 func QueryTypep(q model.QueryType) *model.QueryType {
 	return &q
 }

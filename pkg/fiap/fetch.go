@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/SIOS-Technology-Inc/go-fiap-client/pkg/fiap/model"
+	"github.com/SIOS-Technology-Inc/go-fiap-client/pkg/fiap/tools"
 )
 
 func Fetch(connectionURL string, keys []model.UserInputKey, option *model.FetchOption) (pointSets map[string](model.ProcessedPointSet), points map[string](model.ProcessedPoint), err error) {
@@ -89,7 +90,7 @@ func FetchByIdsWithKey(connectionURL string, key model.UserInputKeyNoID, option 
 
 func FetchLatest(connectionURL string, ids ...string) (datas map[string]string, err error) {
 	var points map[string]model.ProcessedPoint
-	_, points, err = FetchByIdsWithKey(connectionURL, model.UserInputKeyNoID{MinMaxIndicator: "maximum"}, &model.FetchOption{}, ids...)
+	_, points, err = FetchByIdsWithKey(connectionURL, model.UserInputKeyNoID{MinMaxIndicator: tools.Stringp("maximum")}, &model.FetchOption{}, ids...)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +103,7 @@ func FetchLatest(connectionURL string, ids ...string) (datas map[string]string, 
 
 func FetchOldest(connectionURL string, ids ...string) (datas map[string]string, err error) {
 	var points map[string]model.ProcessedPoint
-	_, points, err = FetchByIdsWithKey(connectionURL, model.UserInputKeyNoID{MinMaxIndicator: "minimum"}, &model.FetchOption{}, ids...)
+	_, points, err = FetchByIdsWithKey(connectionURL, model.UserInputKeyNoID{MinMaxIndicator: tools.Stringp("minimum")}, &model.FetchOption{}, ids...)
 	if err != nil {
 		return nil, err
 	}
@@ -114,7 +115,7 @@ func FetchOldest(connectionURL string, ids ...string) (datas map[string]string, 
 }
 
 func FetchDateRange(connectionURL string, fromDate time.Time, untilDate time.Time, option *model.FetchOption, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string](model.ProcessedPoint), err error) {
-	pointSets, points, err = FetchByIdsWithKey(connectionURL, model.UserInputKeyNoID{Gteq: fromDate, Lteq: untilDate}, &model.FetchOption{}, ids...)
+	pointSets, points, err = FetchByIdsWithKey(connectionURL, model.UserInputKeyNoID{Gteq: &fromDate, Lteq: &untilDate}, &model.FetchOption{}, ids...)
 	if err != nil {
 		return nil, nil, err
 	}
