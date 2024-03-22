@@ -47,10 +47,10 @@ func fiapFetch(connectionURL string, keys []model.UserInputKey, option *model.Fe
 
 	// クエリを作成
 	queryRQ := CreateQueryRQ(val, option, keys)
-	response := &model.QueryRS{}
+	resBody = &model.QueryRS{}
 
 	// クエリを実行
-	httpResponse, err = client.Call(context.Background(), "http://soap.fiap.org/query", queryRQ, response)
+	httpResponse, err = client.Call(context.Background(), "http://soap.fiap.org/query", queryRQ, resBody)
 
 	// エラーがあればエラーを返す
 	if err != nil {
