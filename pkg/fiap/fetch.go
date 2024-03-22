@@ -10,7 +10,7 @@ import (
 )
 
 func Fetch(connectionURL string, keys []model.UserInputKey, option *model.FetchOption) (pointSets map[string](model.ProcessedPointSet), points map[string](model.ProcessedPoint), err error) {
-	tools.DebugLogPrintf("Fetch start, connectionURL: %s, keys: %v, option: %#v\n", connectionURL, keys, option)
+	tools.DebugLogPrintf("Debug: Fetch start, connectionURL: %s, keys: %v, option: %#v\n", connectionURL, keys, option)
 	
 	pointSets = make(map[string](model.ProcessedPointSet))
 	points = make(map[string](model.ProcessedPoint))
@@ -59,13 +59,13 @@ func Fetch(connectionURL string, keys []model.UserInputKey, option *model.FetchO
 			break
 		}
 	}
-	tools.DebugLogPrintf("Fetch end, pointSets: %v, points: %v\n", pointSets, points)
+	tools.DebugLogPrintf("Debug: Fetch end, pointSets: %v, points: %v\n", pointSets, points)
 	return pointSets, points, nil
 }
 
 
 func FetchOnce(connectionURL string, keys []model.UserInputKey, option *model.FetchOnceOption) (pointSets map[string](model.ProcessedPointSet), points map[string](model.ProcessedPoint), cursor string, err error) {
-	tools.DebugLogPrintf("FetchOnce start, connectionURL: %s, keys: %v, option: %#v\n", connectionURL, keys, option)
+	tools.DebugLogPrintf("Debug: FetchOnce start, connectionURL: %s, keys: %v, option: %#v\n", connectionURL, keys, option)
 
 	_, body, err := fiapFetch(connectionURL, keys, option)
 	if err != nil {
@@ -77,18 +77,19 @@ func FetchOnce(connectionURL string, keys []model.UserInputKey, option *model.Fe
 	pointSets, points, cursor, err = processQueryRS(body)
 	if err != nil {
 		err = errors.Wrap(err, "processQueryRS error")
+		log.Printf("Error: %+v\n", err)
 		return nil, nil, "", err
 	} else if cursor == "" {
-		tools.DebugLogPrintf("FetchOnce end without cursor, pointSets: %v, points: %v\n", pointSets, points)
+		tools.DebugLogPrintf("Debug: FetchOnce end without cursor, pointSets: %v, points: %v\n", pointSets, points)
 		return pointSets, points, "", nil
 	} else {
-		tools.DebugLogPrintf("FetchOnce end with cursor, pointSets: %v, points: %v, cursor: %s\n", pointSets, points, cursor)
+		tools.DebugLogPrintf("Debug: FetchOnce end with cursor, pointSets: %v, points: %v, cursor: %s\n", pointSets, points, cursor)
 		return pointSets, points, cursor, nil
 	}
 }
 
 func FetchByIdsWithKey(connectionURL string, key model.UserInputKeyNoID, option *model.FetchOption, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string](model.ProcessedPoint), err error) {
-	tools.DebugLogPrintf("FetchByIdsWithKey start, connectionURL: %s, key: %v, option: %#v, ids: %v\n", connectionURL, key, option, ids)
+	tools.DebugLogPrintf("Debug: FetchByIdsWithKey start, connectionURL: %s, key: %v, option: %#v, ids: %v\n", connectionURL, key, option, ids)
 	// Fetchのためのキーを作成
 	var keys []model.UserInputKey
 	for _, id := range ids {
@@ -110,13 +111,13 @@ func FetchByIdsWithKey(connectionURL string, key model.UserInputKeyNoID, option 
 		log.Printf("Error: %+v\n", err)
 		return nil, nil, err
 	}
-	tools.DebugLogPrintf("FetchByIdsWithKey end, pointSets: %v, points: %v\n", pointSets, points)
+	tools.DebugLogPrintf("Debug: FetchByIdsWithKey end, pointSets: %v, points: %v\n", pointSets, points)
 	return pointSets, points, err
 }
 
 
 func FetchLatest(connectionURL string, ids ...string) (datas map[string]string, err error) {
-	tools.DebugLogPrintf("FetchLatest start, connectionURL: %s, ids: %v\n", connectionURL, ids)
+	tools.DebugLogPrintf("Debug: FetchLatest start, connectionURL: %s, ids: %v\n", connectionURL, ids)
 	var points map[string]model.ProcessedPoint
 	_, points, err = FetchByIdsWithKey(connectionURL, model.UserInputKeyNoID{MinMaxIndicator: tools.Stringp("maximum")}, &model.FetchOption{}, ids...)
 	if err != nil {
@@ -128,12 +129,12 @@ func FetchLatest(connectionURL string, ids ...string) (datas map[string]string, 
 	for id, point := range points {
 		datas[id] = point.Values[0].Value
 	}
-	tools.DebugLogPrintf("FetchLatest end, datas: %v\n", datas)
+	tools.DebugLogPrintf("Debug: FetchLatest end, datas: %v\n", datas)
 	return datas, nil
 }
 
 func FetchOldest(connectionURL string, ids ...string) (datas map[string]string, err error) {
-	tools.DebugLogPrintf("FetchOldest start, connectionURL: %s, ids: %v\n", connectionURL, ids)
+	tools.DebugLogPrintf("Debug: FetchOldest start, connectionURL: %s, ids: %v\n", connectionURL, ids)
 	var points map[string]model.ProcessedPoint
 	_, points, err = FetchByIdsWithKey(connectionURL, model.UserInputKeyNoID{MinMaxIndicator: tools.Stringp("minimum")}, &model.FetchOption{}, ids...)
 	if err != nil {
@@ -145,30 +146,32 @@ func FetchOldest(connectionURL string, ids ...string) (datas map[string]string, 
 	for id, point := range points {
 		datas[id] = point.Values[0].Value
 	}
-	tools.DebugLogPrintf("FetchOldest end, datas: %v\n", datas)
+	tools.DebugLogPrintf("Debug: FetchOldest end, datas: %v\n", datas)
 	return datas, nil
 }
 
 func FetchDateRange(connectionURL string, fromDate time.Time, untilDate time.Time, option *model.FetchOption, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string](model.ProcessedPoint), err error) {
-	tools.DebugLogPrintf("FetchDateRange start, connectionURL: %s, fromDate: %v, untilDate: %v, option: %#v, ids: %v\n", connectionURL, fromDate, untilDate, option, ids)
+	tools.DebugLogPrintf("Debug: FetchDateRange start, connectionURL: %s, fromDate: %v, untilDate: %v, option: %#v, ids: %v\n", connectionURL, fromDate, untilDate, option, ids)
 	pointSets, points, err = FetchByIdsWithKey(connectionURL, model.UserInputKeyNoID{Gteq: &fromDate, Lteq: &untilDate}, &model.FetchOption{}, ids...)
 	if err != nil {
 		err = errors.Wrap(err, "FetchByIdsWithKey error")
 		log.Printf("Error: %+v\n", err)
 		return nil, nil, err
 	}
-	tools.DebugLogPrintf("FetchDateRange end, pointSets: %v, points: %v\n", pointSets, points)
+	tools.DebugLogPrintf("Debug: FetchDateRange end, pointSets: %v, points: %v\n", pointSets, points)
 	return pointSets, points, nil
 }
 
 func processQueryRS(data *model.QueryRS) (pointSets map[string](model.ProcessedPointSet), points map[string](model.ProcessedPoint), cursor string, err error){
-	tools.DebugLogPrintf("processQueryRS start, data: %#v\n", data)
+	tools.DebugLogPrintf("Debug: processQueryRS start, data: %#v\n", data)
 	if data == nil {
 		err = errors.New("queryRS is nil")
+		log.Printf("Error: %+v\n", err)
 		return nil, nil, "", err
 	}
 	if data.Transport == nil {
 		err = errors.New("transport is nil")
+		log.Printf("Error: %+v\n", err)
 		return nil, nil, "", err
 	}
 	if data.Transport.Body == nil {
@@ -252,6 +255,6 @@ func processQueryRS(data *model.QueryRS) (pointSets map[string](model.ProcessedP
 		cursor = ""
 	}
 
-	tools.DebugLogPrintf("processQueryRS end, pointSets: %v, points: %v, cursor: %s\n", pointSets, points, cursor)
+	tools.DebugLogPrintf("Debug: processQueryRS end, pointSets: %v, points: %v, cursor: %s\n", pointSets, points, cursor)
 	return pointSets, points, cursor, nil
 }
