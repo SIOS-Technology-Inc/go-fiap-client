@@ -2,14 +2,15 @@ package fiap
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"regexp"
+
 	"github.com/google/uuid"
 
 	"github.com/SIOS-Technology-Inc/go-fiap-client/pkg/fiap/model"
 	"github.com/SIOS-Technology-Inc/go-fiap-client/pkg/fiap/tools"
 	"github.com/globusdigital/soap"
+	"github.com/cockroachdb/errors"
 )
 
 func fiapFetch(connectionURL string, keys []model.UserInputKey, option *model.FetchOnceOption) (httpResponse *http.Response, resBody *model.QueryRS, err error) {
@@ -26,21 +27,31 @@ func fiapFetch(connectionURL string, keys []model.UserInputKey, option *model.Fe
 
 	// 入力チェック
 	if connectionURL == "" {
-		return nil, nil, fmt.Errorf("connectionURL is empty")
+		err = errors.New("connectionURL is empty")
+		err = errors.WithStack(err)
+		return nil, nil, err
 	}
 	if !regexp.MustCompile(`^https?://`).Match([]byte(connectionURL)) {
-		return nil, nil, fmt.Errorf("invalid connectionURL: %s", connectionURL)
+		err = errors.New("invalid connectionURL")
+		err = errors.WithStack(err)
+		return nil, nil, err
 	}
 	if len(keys) == 0 {
-		return nil, nil, fmt.Errorf("keys is empty")
+		err = errors.New("keys is empty")
+		err = errors.WithStack(err)
+		return nil, nil, err
 	}
 	for _, key := range keys {
 		if key.ID == "" {
-			return nil, nil, fmt.Errorf("keys.ID is empty")
+			err = errors.New("keys.ID is empty")
+			err = errors.WithStack(err)
+			return nil, nil, err
 		}
 	}
 	if option.Cursor != nil && !tools.IsUUID(option.Cursor) {
-		return nil, nil, fmt.Errorf("cursor must be entered in UUID format. example: '123e4567-e89b-12d3-a456-426614174000'")
+		err = errors.New("cursor must be entered in UUID format. example: '123e4567-e89b-12d3-a456-426614174000'")
+		err = errors.WithStack(err)
+		return nil, nil, err
 	}
 
 	// クエリを作成
@@ -49,9 +60,9 @@ func fiapFetch(connectionURL string, keys []model.UserInputKey, option *model.Fe
 
 	// クエリを実行
 	httpResponse, err = client.Call(context.Background(), "http://soap.fiap.org/query", queryRQ, resBody)
-
-	// エラーがあればエラーを返す
 	if err != nil {
+		err = errors.Wrap(err, "client.Call error")
+		err = errors.WithStack(err)
 		return nil, nil, err
 	}
 
