@@ -14,7 +14,8 @@ import (
 )
 
 func fiapFetch(connectionURL string, keys []model.UserInputKey, option *model.FetchOnceOption) (httpResponse *http.Response, resBody *model.QueryRS, err error) {
-	// クライアントを作成
+	tools.DebugLogPrintf("fiapFetch start, connectionURL: %s, keys: %v, option: %v\n", connectionURL, keys, option)
+	
 	client := soap.NewClient(connectionURL, nil)
 
 	// デフォルト値の設定
@@ -50,21 +51,25 @@ func fiapFetch(connectionURL string, keys []model.UserInputKey, option *model.Fe
 	}
 
 	// クエリを作成
-	queryRQ := CreateQueryRQ(option, keys)
+	queryRQ := CreateFetchQueryRQ(option, keys)
 	resBody = &model.QueryRS{}
 
 	// クエリを実行
+	tools.DebugLogPrintf("fiapFetch, client.Call start, queryRQ: %#v\n", queryRQ)
 	httpResponse, err = client.Call(context.Background(), "http://soap.fiap.org/query", queryRQ, resBody)
+	tools.DebugLogPrintf("fiapFetch, client.Call end, httpResponse: %#v\n", httpResponse)
+
 	if err != nil {
-		err = errors.Wrap(err, "client.Call error")
+		err = errors.Wrap(err, "fiapFetch, client.Call error")
 		return nil, nil, err
 	}
 
-	// エラーがなければ結果を返す
+	tools.DebugLogPrintf("fiapFetch end, resBody: %#v\n", resBody)
 	return httpResponse, resBody, nil
 }
 
-func CreateQueryRQ (option *model.FetchOnceOption, keys []model.UserInputKey) *model.QueryRQ {
+func CreateFetchQueryRQ (option *model.FetchOnceOption, keys []model.UserInputKey) *model.QueryRQ {
+	tools.DebugLogPrintf("CreateFetchQueryRQ start, option: %v, keys: %v\n", option, keys)
 	var uuidObj uuid.UUID
 	uuidObj, _ = uuid.NewRandom()
 
@@ -83,5 +88,6 @@ func CreateQueryRQ (option *model.FetchOnceOption, keys []model.UserInputKey) *m
 			},
 		},
 	}
+	tools.DebugLogPrintf("CreateFetchQueryRQ end, queryRQ: %#v\n", queryRQ)
 	return queryRQ
 }
