@@ -51,6 +51,7 @@ func fiapFetch(connectionURL string, keys []model.UserInputKey, option *model.Fe
 		}
 	}
 	if option.Cursor != nil && !tools.IsUUID(option.Cursor) {
+		tools.DebugLogPrintf("Debug: option.Cursor: %#v\n", *option.Cursor)
 		err = errors.New("cursor must be entered in UUID format. example: '123e4567-e89b-12d3-a456-426614174000'")
 		log.Printf("Error: %+v\n", err)
 		return nil, nil, err
@@ -63,7 +64,7 @@ func fiapFetch(connectionURL string, keys []model.UserInputKey, option *model.Fe
 	// クエリを実行
 	tools.DebugLogPrintf("Debug: fiapFetch, client.Call start, queryRQ: %#v\n", queryRQ)
 	httpResponse, err = client.Call(context.Background(), "http://soap.fiap.org/query", queryRQ, resBody)
-	tools.DebugLogPrintf("Debug: fiapFetch, client.Call end, httpResponse: %#v\n", httpResponse)
+	tools.DebugLogPrintf("Debug: fiapFetch, client.Call end, httpResponse: %#v, resBody: %#v\n", httpResponse, resBody)
 
 	if err != nil {
 		err = errors.Wrap(err, "fiapFetch, client.Call error")

@@ -16,10 +16,11 @@ func Fetch(connectionURL string, keys []model.UserInputKey, option *model.FetchO
 	points = make(map[string](model.ProcessedPoint))
 	
 	// cursorの初期化
-	cursor := ""
+	var cursor *string
+	cursor = nil
 	
 	// 初回のFetchOnceを実行
-	fetchOnceOption := &model.FetchOnceOption{AcceptableSize: option.AcceptableSize, Cursor: &cursor}
+	fetchOnceOption := &model.FetchOnceOption{AcceptableSize: option.AcceptableSize, Cursor: cursor}
 	fetchOncePointSets, fetchOncePoints, cursor, err := FetchOnce(connectionURL, keys, fetchOnceOption)
 	if err != nil {
 		err = errors.Wrap(err, "FetchOnce error")
@@ -38,10 +39,10 @@ func Fetch(connectionURL string, keys []model.UserInputKey, option *model.FetchO
 
 	// cursorが空でない限り、繰り返し処理を行う
 	i := 0
-	for cursor != "" {
+	for cursor != nil {
 		i++
 		// FetchOnceを実行
-		fetchOnceOption := &model.FetchOnceOption{AcceptableSize: option.AcceptableSize,	Cursor: &cursor}
+		fetchOnceOption := &model.FetchOnceOption{AcceptableSize: option.AcceptableSize,	Cursor: cursor}
 		fetchOncePointSets, fetchOncePoints, cursor, err := FetchOnce(connectionURL, keys, fetchOnceOption)
 		if err != nil {
 			err = errors.Wrapf(err, "FetchOnce error on loop iteration %d", i)
@@ -55,7 +56,7 @@ func Fetch(connectionURL string, keys []model.UserInputKey, option *model.FetchO
 		for key, value := range fetchOncePoints {
 			points[key] = value
 		}
-		if cursor == "" {
+		if cursor == nil {
 			break
 		}
 	}
@@ -64,26 +65,26 @@ func Fetch(connectionURL string, keys []model.UserInputKey, option *model.FetchO
 }
 
 
-func FetchOnce(connectionURL string, keys []model.UserInputKey, option *model.FetchOnceOption) (pointSets map[string](model.ProcessedPointSet), points map[string](model.ProcessedPoint), cursor string, err error) {
+func FetchOnce(connectionURL string, keys []model.UserInputKey, option *model.FetchOnceOption) (pointSets map[string](model.ProcessedPointSet), points map[string](model.ProcessedPoint), cursor *string, err error) {
 	tools.DebugLogPrintf("Debug: FetchOnce start, connectionURL: %s, keys: %v, option: %#v\n", connectionURL, keys, option)
 
 	_, body, err := fiapFetch(connectionURL, keys, option)
 	if err != nil {
 		err = errors.Wrap(err, "fiapFetch error")
 		log.Printf("Error: %+v\n", err)
-		return nil, nil, "", err	
+		return nil, nil, nil, err	
 	}
 
 	pointSets, points, cursor, err = processQueryRS(body)
 	if err != nil {
 		err = errors.Wrap(err, "processQueryRS error")
 		log.Printf("Error: %+v\n", err)
-		return nil, nil, "", err
-	} else if cursor == "" {
+		return nil, nil, nil, err
+	} else if cursor == nil {
 		tools.DebugLogPrintf("Debug: FetchOnce end without cursor, pointSets: %v, points: %v\n", pointSets, points)
-		return pointSets, points, "", nil
+		return pointSets, points, nil, nil
 	} else {
-		tools.DebugLogPrintf("Debug: FetchOnce end with cursor, pointSets: %v, points: %v, cursor: %s\n", pointSets, points, cursor)
+		tools.DebugLogPrintf("Debug: FetchOnce end with cursor, pointSets: %v, points: %v, cursor: %v\n", pointSets, points, *cursor)
 		return pointSets, points, cursor, nil
 	}
 }
@@ -162,24 +163,26 @@ func FetchDateRange(connectionURL string, fromDate time.Time, untilDate time.Tim
 	return pointSets, points, nil
 }
 
-func processQueryRS(data *model.QueryRS) (pointSets map[string](model.ProcessedPointSet), points map[string](model.ProcessedPoint), cursor string, err error){
+func processQueryRS(data *model.QueryRS) (pointSets map[string](model.ProcessedPointSet), points map[string](model.ProcessedPoint), cursor *string, err error){
 	tools.DebugLogPrintf("Debug: processQueryRS start, data: %#v\n", data)
 	if data == nil {
 		err = errors.New("queryRS is nil")
 		log.Printf("Error: %+v\n", err)
-		return nil, nil, "", err
+		return nil, nil, nil, err
 	}
 	if data.Transport == nil {
 		err = errors.New("transport is nil")
 		log.Printf("Error: %+v\n", err)
-		return nil, nil, "", err
+		return nil, nil, nil, err
 	}
 	if data.Transport.Body == nil {
-		return nil, nil, "", nil
+		return nil, nil, nil, nil
 	}
 
 	// BodyにPointSetが返っていれば、それを処理する
+	tools.DebugLogPrintf("Debug: processQueryRS, data.Transport.Body.PointSet: %#v\n", data.Transport.Body.PointSet)
 	if data.Transport.Body.PointSet != nil {
+		tools.DebugLogPrintln("Debug: processQueryRS, pointSet is not nil")
 		// 内部処理のために、IDを格納する配列を作成
 		var pointSetSecondLayerPointSetIds []string ;
 		var pointSetSecondLayerPointIds []string;
@@ -212,6 +215,7 @@ func processQueryRS(data *model.QueryRS) (pointSets map[string](model.ProcessedP
 			}
 		}
 	} else {
+		tools.DebugLogPrintln("Debug: processQueryRS, pointSet is nil")
 		pointSets = nil
 	}
 
@@ -250,11 +254,16 @@ func processQueryRS(data *model.QueryRS) (pointSets map[string](model.ProcessedP
 
 	// QueryクラスにCursorがあれば、それを処理する
 	if data.Transport.Header.Query.Cursor != nil {
-		cursor = string(*data.Transport.Header.Query.Cursor)
+		cursorStr := string(*data.Transport.Header.Query.Cursor)
+		cursor = &cursorStr
 	} else {
-		cursor = ""
+		cursor = nil
 	}
 
-	tools.DebugLogPrintf("Debug: processQueryRS end, pointSets: %v, points: %v, cursor: %s\n", pointSets, points, cursor)
+	if cursor != nil {
+		tools.DebugLogPrintf("Debug: processQueryRS end, pointSets: %v, points: %v, cursor: %v\n", pointSets, points, *cursor)
+	} else {
+		tools.DebugLogPrintf("Debug: processQueryRS end with no cursor, pointSets: %v, points: %v\n", pointSets, points)
+	}
 	return pointSets, points, cursor, nil
 }
