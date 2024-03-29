@@ -2,13 +2,9 @@ package model
 
 import "time"
 
-type ProcessedValue struct {
-	Time  time.Time `json:"time"`
-	Value string    `json:"value"`
-}
-
 type ProcessedPoint struct {
-	Values []ProcessedValue `json:"values"`
+	Times  []time.Time `json:"time"`
+	Values []string    `json:"value"`
 }
 
 type ProcessedPointSet struct {

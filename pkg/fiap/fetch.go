@@ -128,7 +128,7 @@ func FetchLatest(connectionURL string, ids ...string) (datas map[string]string, 
 	}
 	datas = make(map[string]string)
 	for id, point := range points {
-		datas[id] = point.Values[0].Value
+		datas[id] = point.Values[0]
 	}
 	tools.DebugLogPrintf("Debug: FetchLatest end, datas: %v\n", datas)
 	return datas, nil
@@ -145,7 +145,7 @@ func FetchOldest(connectionURL string, ids ...string) (datas map[string]string, 
 	}
 	datas = make(map[string]string)
 	for id, point := range points {
-		datas[id] = point.Values[0].Value
+		datas[id] = point.Values[0]
 	}
 	tools.DebugLogPrintf("Debug: FetchOldest end, datas: %v\n", datas)
 	return datas, nil
@@ -221,31 +221,17 @@ func processQueryRS(data *model.QueryRS) (pointSets map[string](model.ProcessedP
 
 	// BodyにPointが返っていれば、それを処理する
 	if data.Transport.Body.Point != nil {
-		// 内部処理のために、IDを格納する配列を作成
-		var pointValues []model.ProcessedValue
 		// pointsを初期化
 		points = make(map[string](model.ProcessedPoint))
 		// Pointの数だけ処理を繰り返す
 		for _, point := range data.Transport.Body.Point {
-			// 初期化
-			pointValues = nil
-			// Point直下のValueをループ処理
+			// Point直下のValue(timeとvalueを持つ構造体の配列)をループ処理
 			for _, value := range point.Value {
-				// ValueのTimeとValueを格納
-				pointValues = append(pointValues, model.ProcessedValue{
-					Time: *value.Time,
-					Value: value.Value,
-				})
-			}
-			// キーが重複していれば、データを結合してpointsに格納
-			if existingPoint, ok := points[string(point.Id)]; ok {
-				existingPoint.Values = append(existingPoint.Values, pointValues...)
-				points[string(point.Id)] = existingPoint
-			// キーが重複していなければ、pointsにデータを格納
-			} else {
-				points[string(point.Id)] = model.ProcessedPoint{
-					Values: pointValues,
-				}
+				pointID := string(point.Id)
+				tempPoint := points[pointID]
+				tempPoint.Times = append(tempPoint.Times, value.Time)
+				tempPoint.Values = append(tempPoint.Values, value.Value)
+				points[pointID] = tempPoint
 			}
 		}
 	} else {
