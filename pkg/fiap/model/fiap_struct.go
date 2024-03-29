@@ -119,7 +119,7 @@ type Header struct {
 type Value struct {
 	XMLName xml.Name `xml:"http://gutp.jp/fiap/2009/11/ value"`
 
-	Time *time.Time `xml:"time,attr,omitempty" json:"time,omitempty"`
+	Time time.Time `xml:"time,attr,omitempty" json:"time,omitempty"`
 
 	Value string `xml:",chardata" json:"value"`
 }
