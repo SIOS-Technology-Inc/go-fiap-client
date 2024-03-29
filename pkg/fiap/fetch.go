@@ -27,7 +27,6 @@ func Fetch(connectionURL string, keys []model.UserInputKey, option *model.FetchO
 		log.Printf("Error: %+v\n", err)
 		return nil, nil, err
 	}
-	// TODO: Fetchの処理が、keyが重複しているデータを上書きしてしまうため、修正が必要
 
 	// pointSetsとpointsにデータを追加
 	for key, value := range fetchOncePointSets {
@@ -49,12 +48,29 @@ func Fetch(connectionURL string, keys []model.UserInputKey, option *model.FetchO
 			log.Printf("Error: %+v\n", err)
 			return nil, nil, err
 		}
-		// pointSetsとpointsにデータを追加
+		// pointSetにデータを追加
 		for key, value := range fetchOncePointSets {
-			pointSets[key] = value
+			// 重複しているキーがあれば、データを結合してpointSetsに格納
+			if existingPointSet, ok := pointSets[key]; ok {
+				existingPointSet.PointSetID = append(existingPointSet.PointSetID, value.PointSetID...)
+				existingPointSet.PointID = append(existingPointSet.PointID, value.PointID...)
+				pointSets[key] = existingPointSet
+			// 重複していないキーがあれば、pointSetsにデータを格納
+			} else {
+				pointSets[key] = value
+			}
 		}
+		// pointsにデータを追加
 		for key, value := range fetchOncePoints {
-			points[key] = value
+			// 重複しているキーがあれば、データを結合してpointsに格納
+			if existingPoint, ok := points[key]; ok {
+				existingPoint.Times = append(existingPoint.Times, value.Times...)
+				existingPoint.Values = append(existingPoint.Values, value.Values...)
+				points[key] = existingPoint
+			// 重複していないキーがあれば、pointsにデータを格納
+			} else {
+				points[key] = value
+			}
 		}
 		if cursor == nil {
 			break
@@ -227,11 +243,21 @@ func processQueryRS(data *model.QueryRS) (pointSets map[string](model.ProcessedP
 		for _, point := range data.Transport.Body.Point {
 			// Point直下のValue(timeとvalueを持つ構造体の配列)をループ処理
 			for _, value := range point.Value {
-				pointID := string(point.Id)
-				tempPoint := points[pointID]
-				tempPoint.Times = append(tempPoint.Times, value.Time)
-				tempPoint.Values = append(tempPoint.Values, value.Value)
-				points[pointID] = tempPoint
+				// PointIDが重複していなければ、pointsにpointIDをキーとしてvalueとtimeを新規追加
+				if _, ok := points[string(point.Id)]; !ok {
+					pointID := string(point.Id)
+					tempPoint := points[pointID]
+					tempPoint.Times = append(points[pointID].Times, value.Time)
+					tempPoint.Values = append(points[pointID].Values, value.Value)
+					points[pointID] = tempPoint
+				} else {
+					// PointIDが重複していれば、pointsにpointIDをキーとしてvalueとtimeを追加
+					pointID := string(point.Id)
+					tempPoint := points[pointID]
+					tempPoint.Times = append(points[pointID].Times, value.Time)
+					tempPoint.Values = append(points[pointID].Values, value.Value)
+					points[pointID] = tempPoint
+				}
 			}
 		}
 	} else {
