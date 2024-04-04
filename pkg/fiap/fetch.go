@@ -96,11 +96,8 @@ func FetchOnce(connectionURL string, keys []model.UserInputKey, option *model.Fe
 		err = errors.Wrap(err, "processQueryRS error")
 		log.Printf("Error: %+v\n", err)
 		return nil, nil, "", err
-	} else if cursor == "" {
-		tools.DebugLogPrintf("Debug: FetchOnce end without cursor, pointSets: %v, points: %v\n", pointSets, points)
-		return pointSets, points, "", nil
-	} else {
-		tools.DebugLogPrintf("Debug: FetchOnce end with cursor, pointSets: %v, points: %v, cursor: %v\n", pointSets, points, cursor)
+	}	else {
+		tools.DebugLogPrintf("Debug: FetchOnce end, pointSets: %v, points: %v, cursor: %v\n", pointSets, points, cursor)
 		return pointSets, points, cursor, nil
 	}
 }
