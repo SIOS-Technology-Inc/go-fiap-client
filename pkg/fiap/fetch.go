@@ -136,8 +136,7 @@ func FetchByIdsWithKey(connectionURL string, key model.UserInputKeyNoID, option 
 func FetchLatest(connectionURL string, ids ...string) (datas map[string]string, err error) {
 	tools.DebugLogPrintf("Debug: FetchLatest start, connectionURL: %s, ids: %v\n", connectionURL, ids)
 	var points map[string]model.ProcessedPoint
-	max := model.SelectTypeMaximum
-	_, points, err = FetchByIdsWithKey(connectionURL, model.UserInputKeyNoID{MinMaxIndicator: &max}, &model.FetchOption{}, ids...)
+	_, points, err = FetchByIdsWithKey(connectionURL, model.UserInputKeyNoID{MinMaxIndicator: model.SelectTypeMaximum}, &model.FetchOption{}, ids...)
 	if err != nil {
 		err = errors.Wrap(err, "FetchByIdsWithKey error")
 		log.Printf("Error: %+v\n", err)
@@ -154,8 +153,7 @@ func FetchLatest(connectionURL string, ids ...string) (datas map[string]string, 
 func FetchOldest(connectionURL string, ids ...string) (datas map[string]string, err error) {
 	tools.DebugLogPrintf("Debug: FetchOldest start, connectionURL: %s, ids: %v\n", connectionURL, ids)
 	var points map[string]model.ProcessedPoint
-	min := model.SelectTypeMinimum
-	_, points, err = FetchByIdsWithKey(connectionURL, model.UserInputKeyNoID{MinMaxIndicator: &min}, &model.FetchOption{}, ids...)
+	_, points, err = FetchByIdsWithKey(connectionURL, model.UserInputKeyNoID{MinMaxIndicator: model.SelectTypeMinimum}, &model.FetchOption{}, ids...)
 	if err != nil {
 		err = errors.Wrap(err, "FetchByIdsWithKey error")
 		log.Printf("Error: %+v\n", err)

@@ -16,7 +16,7 @@ func UserInputKeysToKeys(ks []model.UserInputKey) []model.Key {
 			Gt: TimeToString(k.Gt),
 			Lteq: TimeToString(k.Lteq),
 			Gteq: TimeToString(k.Gteq),
-			Select: model.SelectType(*k.MinMaxIndicator),
+			Select: k.MinMaxIndicator,
 		}
 		keys = append(keys, key)
 	}
