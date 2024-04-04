@@ -14,6 +14,8 @@ import (
 	"github.com/globusdigital/soap"
 )
 
+var regexpURL = regexp.MustCompile(`^https?://`)
+
 func fiapFetch(connectionURL string, keys []model.UserInputKey, option *model.FetchOnceOption) (httpResponse *http.Response, resBody *model.QueryRS, err error) {
 	tools.DebugLogPrintf("Debug: fiapFetch start, connectionURL: %s, keys: %v, option: %v\n", connectionURL, keys, option)
 
@@ -23,7 +25,7 @@ func fiapFetch(connectionURL string, keys []model.UserInputKey, option *model.Fe
 		log.Printf("Error: %+v\n", err)
 		return nil, nil, err
 	}
-	if !regexp.MustCompile(`^https?://`).Match([]byte(connectionURL)) {
+	if !regexpURL.Match([]byte(connectionURL)) {
 		err = errors.New("invalid connectionURL")
 		log.Printf("Error: %+v\n", err)
 		return nil, nil, err
