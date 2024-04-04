@@ -16,13 +16,6 @@ import (
 
 func fiapFetch(connectionURL string, keys []model.UserInputKey, option *model.FetchOnceOption) (httpResponse *http.Response, resBody *model.QueryRS, err error) {
 	tools.DebugLogPrintf("Debug: fiapFetch start, connectionURL: %s, keys: %v, option: %v\n", connectionURL, keys, option)
-	
-	client := soap.NewClient(connectionURL, nil)
-
-	// デフォルト値の設定
-	if option == nil {
-		option = &model.FetchOnceOption{}
-	}
 
 	// 入力チェック
 	if connectionURL == "" {
@@ -46,6 +39,13 @@ func fiapFetch(connectionURL string, keys []model.UserInputKey, option *model.Fe
 			log.Printf("Error: %+v\n", err)
 			return nil, nil, err
 		}
+	}
+
+	client := soap.NewClient(connectionURL, nil)
+
+	// デフォルト値の設定
+	if option == nil {
+		option = &model.FetchOnceOption{}
 	}
 
 	// クエリを作成
