@@ -16,29 +16,11 @@ func Fetch(connectionURL string, keys []model.UserInputKey, option *model.FetchO
 	points = make(map[string](model.ProcessedPoint))
 	
 	// cursorの初期化
-	var cursor string
-	cursor = ""
-	
-	// 初回のFetchOnceを実行
-	fetchOnceOption := &model.FetchOnceOption{AcceptableSize: option.AcceptableSize, Cursor: cursor}
-	fetchOncePointSets, fetchOncePoints, cursor, err := FetchOnce(connectionURL, keys, fetchOnceOption)
-	if err != nil {
-		err = errors.Wrap(err, "FetchOnce error")
-		log.Printf("Error: %+v\n", err)
-		return nil, nil, err
-	}
+	cursor := ""
 
-	// pointSetsとpointsにデータを追加
-	for key, value := range fetchOncePointSets {
-		pointSets[key] = value
-	}
-	for key, value := range fetchOncePoints {
-		points[key] = value
-	}
-
-	// cursorが空でない限り、繰り返し処理を行う
+	// 戻り値のcursorが""になるまで、繰り返し処理を行う
 	i := 0
-	for cursor != "" {
+	for {
 		i++
 		// FetchOnceを実行
 		fetchOnceOption := &model.FetchOnceOption{AcceptableSize: option.AcceptableSize,	Cursor: cursor}
