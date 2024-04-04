@@ -23,9 +23,6 @@ func fiapFetch(connectionURL string, keys []model.UserInputKey, option *model.Fe
 	if option == nil {
 		option = &model.FetchOnceOption{}
 	}
-	if option.AcceptableSize == nil {
-		*option.AcceptableSize = 1000
-	}
 
 	// 入力チェック
 	if connectionURL == "" {
@@ -49,12 +46,6 @@ func fiapFetch(connectionURL string, keys []model.UserInputKey, option *model.Fe
 			log.Printf("Error: %+v\n", err)
 			return nil, nil, err
 		}
-	}
-	if option.Cursor != nil && !tools.IsUUID(option.Cursor) {
-		tools.DebugLogPrintf("Debug: option.Cursor: %#v\n", *option.Cursor)
-		err = errors.New("cursor must be entered in UUID format. example: '123e4567-e89b-12d3-a456-426614174000'")
-		log.Printf("Error: %+v\n", err)
-		return nil, nil, err
 	}
 
 	// クエリを作成
@@ -81,17 +72,16 @@ func CreateFetchQueryRQ (option *model.FetchOnceOption, keys []model.UserInputKe
 	var uuidObj uuid.UUID
 	uuidObj, _ = uuid.NewRandom()
 
-	val := model.PositiveInteger(*option.AcceptableSize)
 	
 	queryRQ := &model.QueryRQ{
 		Transport: &model.Transport{
 			Header: &model.Header{
 				Query: &model.Query{
-					Id: tools.GoogleUuidToUuidp(uuidObj),
-					AcceptableSize: tools.AcceptableSizep(val),
-					Type: tools.QueryTypep(model.QueryTypeStorage),
-					Cursor: tools.CursorStrpToUuidp(option.Cursor),
-					Key: tools.UserInputKeyspToKeysp(keys),
+					Id: uuidObj.String(),
+					AcceptableSize: option.AcceptableSize,
+					Type: "storage",
+					Cursor: option.Cursor,
+					Key: tools.UserInputKeysToKeys(keys),
 				},
 			},
 		},

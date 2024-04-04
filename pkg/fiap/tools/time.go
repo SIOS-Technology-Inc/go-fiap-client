@@ -4,10 +4,9 @@ import (
 	"time"
 )
 
-func TimeToString(t *time.Time) *string {
+func TimeToString(t *time.Time) string {
 	if t == nil {
-		return nil
+		return ""
 	}
-	s := t.Format(time.RFC3339)
-	return &s
+	return t.Format(time.RFC3339)
 }

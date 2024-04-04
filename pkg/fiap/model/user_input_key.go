@@ -10,7 +10,7 @@ type UserInputKey struct {
 	Gt              *time.Time
 	Lteq            *time.Time
 	Gteq            *time.Time
-	MinMaxIndicator *string
+	MinMaxIndicator *SelectType
 }
 
 type UserInputKeyNoID struct {
@@ -20,5 +20,5 @@ type UserInputKeyNoID struct {
 	Gt              *time.Time
 	Lteq            *time.Time
 	Gteq            *time.Time
-	MinMaxIndicator *string
+	MinMaxIndicator *SelectType
 }
