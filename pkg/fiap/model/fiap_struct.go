@@ -16,6 +16,8 @@ const (
 	SelectTypeMinimum SelectType = "minimum"
 
 	SelectTypeMaximum SelectType = "maximum"
+
+	SelectTypeNone SelectType = ""
 )
 
 type TrapType string
