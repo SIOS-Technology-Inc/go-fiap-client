@@ -9,11 +9,11 @@ import (
 	"github.com/cockroachdb/errors"
 )
 
-func Fetch(connectionURL string, keys []model.UserInputKey, option *model.FetchOption) (pointSets map[string](model.ProcessedPointSet), points map[string](model.ProcessedPoint), err error) {
+func Fetch(connectionURL string, keys []model.UserInputKey, option *model.FetchOption) (pointSets map[string](model.ProcessedPointSet), points map[string](model.Value), err error) {
 	tools.DebugLogPrintf("Debug: Fetch start, connectionURL: %s, keys: %v, option: %#v\n", connectionURL, keys, option)
 	
 	pointSets = make(map[string](model.ProcessedPointSet))
-	points = make(map[string](model.ProcessedPoint))
+	points = make(map[string](model.Value))
 	
 	// cursorの初期化
 	cursor := ""
@@ -63,7 +63,7 @@ func Fetch(connectionURL string, keys []model.UserInputKey, option *model.FetchO
 }
 
 
-func FetchOnce(connectionURL string, keys []model.UserInputKey, option *model.FetchOnceOption) (pointSets map[string](model.ProcessedPointSet), points map[string](model.ProcessedPoint), cursor string, err error) {
+func FetchOnce(connectionURL string, keys []model.UserInputKey, option *model.FetchOnceOption) (pointSets map[string](model.ProcessedPointSet), points map[string](model.Value), cursor string, err error) {
 	tools.DebugLogPrintf("Debug: FetchOnce start, connectionURL: %s, keys: %v, option: %#v\n", connectionURL, keys, option)
 
 	_, body, err := fiapFetch(connectionURL, keys, option)
@@ -84,7 +84,7 @@ func FetchOnce(connectionURL string, keys []model.UserInputKey, option *model.Fe
 	}
 }
 
-func FetchByIdsWithKey(connectionURL string, key model.UserInputKeyNoID, option *model.FetchOption, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string](model.ProcessedPoint), err error) {
+func FetchByIdsWithKey(connectionURL string, key model.UserInputKeyNoID, option *model.FetchOption, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string](model.Value), err error) {
 	tools.DebugLogPrintf("Debug: FetchByIdsWithKey start, connectionURL: %s, key: %v, option: %#v, ids: %v\n", connectionURL, key, option, ids)
 	// Fetchのためのキーを作成
 	var keys []model.UserInputKey
@@ -114,7 +114,7 @@ func FetchByIdsWithKey(connectionURL string, key model.UserInputKeyNoID, option 
 
 func FetchLatest(connectionURL string, ids ...string) (datas map[string]string, err error) {
 	tools.DebugLogPrintf("Debug: FetchLatest start, connectionURL: %s, ids: %v\n", connectionURL, ids)
-	var points map[string]model.ProcessedPoint
+	var points map[string]model.Value
 	_, points, err = FetchByIdsWithKey(connectionURL, model.UserInputKeyNoID{MinMaxIndicator: model.SelectTypeMaximum}, &model.FetchOption{}, ids...)
 	if err != nil {
 		err = errors.Wrap(err, "FetchByIdsWithKey error")
@@ -131,7 +131,7 @@ func FetchLatest(connectionURL string, ids ...string) (datas map[string]string, 
 
 func FetchOldest(connectionURL string, ids ...string) (datas map[string]string, err error) {
 	tools.DebugLogPrintf("Debug: FetchOldest start, connectionURL: %s, ids: %v\n", connectionURL, ids)
-	var points map[string]model.ProcessedPoint
+	var points map[string]model.Value
 	_, points, err = FetchByIdsWithKey(connectionURL, model.UserInputKeyNoID{MinMaxIndicator: model.SelectTypeMinimum}, &model.FetchOption{}, ids...)
 	if err != nil {
 		err = errors.Wrap(err, "FetchByIdsWithKey error")
@@ -146,7 +146,7 @@ func FetchOldest(connectionURL string, ids ...string) (datas map[string]string, 
 	return datas, nil
 }
 
-func FetchDateRange(connectionURL string, fromDate time.Time, untilDate time.Time, option *model.FetchOption, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string](model.ProcessedPoint), err error) {
+func FetchDateRange(connectionURL string, fromDate time.Time, untilDate time.Time, option *model.FetchOption, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string](model.Value), err error) {
 	tools.DebugLogPrintf("Debug: FetchDateRange start, connectionURL: %s, fromDate: %v, untilDate: %v, option: %#v, ids: %v\n", connectionURL, fromDate, untilDate, option, ids)
 	pointSets, points, err = FetchByIdsWithKey(connectionURL, model.UserInputKeyNoID{Gteq: &fromDate, Lteq: &untilDate}, &model.FetchOption{}, ids...)
 	if err != nil {
@@ -158,7 +158,7 @@ func FetchDateRange(connectionURL string, fromDate time.Time, untilDate time.Tim
 	return pointSets, points, nil
 }
 
-func processQueryRS(data *model.QueryRS) (pointSets map[string](model.ProcessedPointSet), points map[string](model.ProcessedPoint), cursor string, err error){
+func processQueryRS(data *model.QueryRS) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), cursor string, err error){
 	tools.DebugLogPrintf("Debug: processQueryRS start, data: %#v\n", data)
 	if data == nil {
 		err = errors.New("queryRS is nil")
@@ -178,35 +178,29 @@ func processQueryRS(data *model.QueryRS) (pointSets map[string](model.ProcessedP
 	tools.DebugLogPrintf("Debug: processQueryRS, data.Transport.Body.PointSet: %#v\n", data.Transport.Body.PointSet)
 	if data.Transport.Body.PointSet != nil {
 		tools.DebugLogPrintln("Debug: processQueryRS, pointSet is not nil")
-		// 内部処理のために、IDを格納する配列を作成
-		var pointSetSecondLayerPointSetIds []string ;
-		var pointSetSecondLayerPointIds []string;
 		// pointSetsを初期化
 		pointSets = make(map[string](model.ProcessedPointSet))
 		// PointSetの数だけ処理を繰り返す
-		for _, pointSetFirstLayer := range data.Transport.Body.PointSet {
-			// 初期化
-			pointSetSecondLayerPointSetIds = nil
-			pointSetSecondLayerPointIds = nil
-			// PointSet直下のPointSetをループ処理
-			for _, pointSetSecondLayerPoinSet := range pointSetFirstLayer.PointSet {
-				pointSetSecondLayerPointSetIds = append(pointSetSecondLayerPointSetIds, string(pointSetSecondLayerPoinSet.Id))
-			}
-			// PointSet直下のPointをループ処理
-			for _, pointSetSecondLayerPoint := range pointSetFirstLayer.Point {
-				pointSetSecondLayerPointIds = append(pointSetSecondLayerPointIds, string(pointSetSecondLayerPoint.Id))
-			}
-			// キーが重複していれば、データを結合してpointSetsに格納
-			if existingPointSet, ok := pointSets[string(pointSetFirstLayer.Id)]; ok {
-				existingPointSet.PointSetID = append(existingPointSet.PointSetID, pointSetSecondLayerPointSetIds...)
-				existingPointSet.PointID = append(existingPointSet.PointID, pointSetSecondLayerPointIds...)
-				pointSets[string(pointSetFirstLayer.Id)] = existingPointSet
-			// キーが重複していなければ、pointSetsにデータを格納
-			} else {
-				pointSets[string(pointSetFirstLayer.Id)] = model.ProcessedPointSet{
-					PointSetID: pointSetSecondLayerPointSetIds,
-					PointID: pointSetSecondLayerPointIds,
+		for _, ps := range data.Transport.Body.PointSet {
+			proccessed := model.ProcessedPointSet{}
+			for _, id := range ps.PointSetId {
+				if id != nil {
+					proccessed.PointSetID = append(proccessed.PointSetID, *id)
 				}
+			}
+			for _, id := range ps.PointId {
+				if id != nil {
+					proccessed.PointID = append(proccessed.PointID, *id)
+				}
+			}
+			// pointSetsのkeyが設定されていない場合にはデータを代入する
+			if existingPointSet, ok := pointSets[ps.Id]; !ok {
+				pointSets[ps.Id] = proccessed
+			// pointSetsのkeyが既に設定されていた場合にはデータを上書きせず追加する
+			} else {
+				proccessed.PointSetID = append(existingPointSet.PointSetID, proccessed.PointSetID...)
+				proccessed.PointID = append(existingPointSet.PointID, proccessed.PointID...)
+				pointSets[ps.Id] = proccessed
 			}
 		}
 	} else {
@@ -217,26 +211,19 @@ func processQueryRS(data *model.QueryRS) (pointSets map[string](model.ProcessedP
 	// BodyにPointが返っていれば、それを処理する
 	if data.Transport.Body.Point != nil {
 		// pointsを初期化
-		points = make(map[string](model.ProcessedPoint))
+		points = make(map[string]([]model.Value))
 		// Pointの数だけ処理を繰り返す
-		for _, point := range data.Transport.Body.Point {
-			// Point直下のValue(timeとvalueを持つ構造体の配列)をループ処理
-			for _, value := range point.Value {
-				// PointIDが重複していなければ、pointsにpointIDをキーとしてvalueとtimeを新規追加
-				if _, ok := points[string(point.Id)]; !ok {
-					pointID := string(point.Id)
-					tempPoint := points[pointID]
-					tempPoint.Times = append(points[pointID].Times, value.Time)
-					tempPoint.Values = append(points[pointID].Values, value.Value)
-					points[pointID] = tempPoint
-				} else {
-					// PointIDが重複していれば、pointsにpointIDをキーとしてvalueとtimeを追加
-					pointID := string(point.Id)
-					tempPoint := points[pointID]
-					tempPoint.Times = append(points[pointID].Times, value.Time)
-					tempPoint.Values = append(points[pointID].Values, value.Value)
-					points[pointID] = tempPoint
-				}
+		for _, p := range data.Transport.Body.Point {
+			values := make([]model.Value, len(p.Value))
+			for i, v := range p.Value {
+				values[i] = *v
+			}
+			// pointsのkeyが設定されていない場合にはデータを代入する
+			if existingValues, ok := points[p.Id]; !ok {
+				points[p.Id] = values
+			// pointsのkeyが既に設定されていた場合にはデータを上書きせず追加する
+			} else {
+				points[p.Id] = append(existingValues, values...)
 			}
 		}
 	} else {
