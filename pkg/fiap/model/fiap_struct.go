@@ -25,7 +25,7 @@ type TrapType string
 type Key struct {
 	Id string `xml:"id,attr,omitempty" json:"id,omitempty"`
 
-	AttrName string `xml:"attrName,attr,omitempty" json:"attrName,omitempty"`
+	AttrName string `xml:"attrName,attr,omitempty" json:"attr_name,omitempty"`
 
 	Eq string `xml:"eq,attr,omitempty" json:"eq,omitempty"`
 
@@ -57,7 +57,7 @@ type Query struct {
 
 	Cursor string `xml:"cursor,attr,omitempty" json:"cursor,omitempty"`
 
-	AcceptableSize uint `xml:"acceptableSize,attr,omitempty" json:"acceptableSize,omitempty"`
+	AcceptableSize uint `xml:"acceptableSize,attr,omitempty" json:"acceptable_size,omitempty"`
 }
 
 type Error struct {
@@ -68,7 +68,7 @@ type OK struct {
 }
 
 type Header struct {
-	OK *OK `xml:"OK,omitempty" json:"OK,omitempty"`
+	OK *OK `xml:"OK,omitempty" json:"ok,omitempty"`
 
 	Error *Error `xml:"error,omitempty" json:"error,omitempty"`
 
@@ -89,7 +89,42 @@ type Point struct {
 
 // TODO PointSet内のPointSetの型を必要に応じて変更する（stringの配列にする?）
 type PointSet struct {
-	PointSet []*PointSet `xml:"pointSet,omitempty" json:"pointSet,omitempty"`
+	PointSetId []*string `json:"point_set_id,omitempty"`
+
+	PointId []*string `json:"point_id,omitempty"`
+
+	Id string `json:"id,omitempty"`
+}
+
+func (p *PointSet) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	aux := &OriginalPointSet{}
+
+	if err := d.DecodeElement(aux, &start); err != nil {
+		return err
+	}
+	p.Id = aux.Id
+	
+	//pointSetがnilでない場合、pointSetIDとpointIDをstringの配列として格納
+	if aux.PointSet != nil {
+		// 受け取ったポイントセットをループさせる
+		for _, pointSet := range aux.PointSet {
+			// ポイントセット直下のpointSetをループ処理
+			for _, pointSetSecondLayerPointset := range pointSet.PointSet {
+				s := pointSetSecondLayerPointset.Id
+				p.PointSetId = append(p.PointSetId, &s)
+			}
+			// ポイントセット直下のpointをループ処理
+			for _, pointSetSecondLayerPoint := range pointSet.Point {
+				s := pointSetSecondLayerPoint.Id
+				p.PointId = append(p.PointId, &s)
+			}
+		}
+	}
+	return nil
+}
+
+type OriginalPointSet struct {
+	PointSet []*OriginalPointSet `xml:"pointSet,omitempty" json:"point_set,omitempty"`
 
 	Point []*Point `xml:"point,omitempty" json:"point,omitempty"`
 
@@ -97,7 +132,7 @@ type PointSet struct {
 }
 
 type Body struct {
-	PointSet []*PointSet `xml:"pointSet,omitempty" json:"pointSet,omitempty"`
+	PointSet []*PointSet `xml:"pointSet,omitempty" json:"point_set,omitempty"`
 
 	Point []*Point `xml:"point,omitempty" json:"point,omitempty"`
 }
