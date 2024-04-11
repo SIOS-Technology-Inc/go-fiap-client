@@ -9,11 +9,11 @@ import (
 	"github.com/cockroachdb/errors"
 )
 
-func Fetch(connectionURL string, keys []model.UserInputKey, option *model.FetchOption) (pointSets map[string](model.ProcessedPointSet), points map[string](model.Value), err error) {
+func Fetch(connectionURL string, keys []model.UserInputKey, option *model.FetchOption) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), err error) {
 	tools.DebugLogPrintf("Debug: Fetch start, connectionURL: %s, keys: %v, option: %#v\n", connectionURL, keys, option)
 	
 	pointSets = make(map[string](model.ProcessedPointSet))
-	points = make(map[string](model.Value))
+	points = make(map[string]([]model.Value))
 	
 	// cursorの初期化
 	cursor := ""
@@ -32,26 +32,24 @@ func Fetch(connectionURL string, keys []model.UserInputKey, option *model.FetchO
 		}
 		// pointSetにデータを追加
 		for key, value := range fetchOncePointSets {
-			// 重複しているキーがあれば、データを結合してpointSetsに格納
-			if existingPointSet, ok := pointSets[key]; ok {
+			// pointSetsのkeyが設定されていない場合にはデータを代入する
+			if existingPointSet, ok := pointSets[key]; !ok {
+				pointSets[key] = value
+			// pointSetsのkeyが既に設定されていた場合にはデータを上書きせず追加する
+			} else {
 				existingPointSet.PointSetID = append(existingPointSet.PointSetID, value.PointSetID...)
 				existingPointSet.PointID = append(existingPointSet.PointID, value.PointID...)
 				pointSets[key] = existingPointSet
-			// 重複していないキーがあれば、pointSetsにデータを格納
-			} else {
-				pointSets[key] = value
 			}
 		}
 		// pointsにデータを追加
-		for key, value := range fetchOncePoints {
-			// 重複しているキーがあれば、データを結合してpointsに格納
-			if existingPoint, ok := points[key]; ok {
-				existingPoint.Times = append(existingPoint.Times, value.Times...)
-				existingPoint.Values = append(existingPoint.Values, value.Values...)
-				points[key] = existingPoint
-			// 重複していないキーがあれば、pointsにデータを格納
+		for key, values := range fetchOncePoints {
+			// pointsのkeyが設定されていない場合にはデータを代入する
+			if existingPoint, ok := points[key]; !ok {
+				points[key] = values
+			// pointsのkeyが既に設定されていた場合にはデータを上書きせず追加する
 			} else {
-				points[key] = value
+				points[key] = append(existingPoint, values...)
 			}
 		}
 		if cursor == "" {
@@ -63,7 +61,7 @@ func Fetch(connectionURL string, keys []model.UserInputKey, option *model.FetchO
 }
 
 
-func FetchOnce(connectionURL string, keys []model.UserInputKey, option *model.FetchOnceOption) (pointSets map[string](model.ProcessedPointSet), points map[string](model.Value), cursor string, err error) {
+func FetchOnce(connectionURL string, keys []model.UserInputKey, option *model.FetchOnceOption) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), cursor string, err error) {
 	tools.DebugLogPrintf("Debug: FetchOnce start, connectionURL: %s, keys: %v, option: %#v\n", connectionURL, keys, option)
 
 	_, body, err := fiapFetch(connectionURL, keys, option)
@@ -84,7 +82,7 @@ func FetchOnce(connectionURL string, keys []model.UserInputKey, option *model.Fe
 	}
 }
 
-func FetchByIdsWithKey(connectionURL string, key model.UserInputKeyNoID, option *model.FetchOption, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string](model.Value), err error) {
+func FetchByIdsWithKey(connectionURL string, key model.UserInputKeyNoID, option *model.FetchOption, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), err error) {
 	tools.DebugLogPrintf("Debug: FetchByIdsWithKey start, connectionURL: %s, key: %v, option: %#v, ids: %v\n", connectionURL, key, option, ids)
 	// Fetchのためのキーを作成
 	var keys []model.UserInputKey
@@ -114,7 +112,7 @@ func FetchByIdsWithKey(connectionURL string, key model.UserInputKeyNoID, option 
 
 func FetchLatest(connectionURL string, ids ...string) (datas map[string]string, err error) {
 	tools.DebugLogPrintf("Debug: FetchLatest start, connectionURL: %s, ids: %v\n", connectionURL, ids)
-	var points map[string]model.Value
+	var points map[string]([]model.Value)
 	_, points, err = FetchByIdsWithKey(connectionURL, model.UserInputKeyNoID{MinMaxIndicator: model.SelectTypeMaximum}, &model.FetchOption{}, ids...)
 	if err != nil {
 		err = errors.Wrap(err, "FetchByIdsWithKey error")
@@ -122,8 +120,8 @@ func FetchLatest(connectionURL string, ids ...string) (datas map[string]string, 
 		return nil, err
 	}
 	datas = make(map[string]string)
-	for id, point := range points {
-		datas[id] = point.Values[0]
+	for id, values := range points {
+		datas[id] = values[0].Value
 	}
 	tools.DebugLogPrintf("Debug: FetchLatest end, datas: %v\n", datas)
 	return datas, nil
@@ -131,7 +129,7 @@ func FetchLatest(connectionURL string, ids ...string) (datas map[string]string, 
 
 func FetchOldest(connectionURL string, ids ...string) (datas map[string]string, err error) {
 	tools.DebugLogPrintf("Debug: FetchOldest start, connectionURL: %s, ids: %v\n", connectionURL, ids)
-	var points map[string]model.Value
+	var points map[string]([]model.Value)
 	_, points, err = FetchByIdsWithKey(connectionURL, model.UserInputKeyNoID{MinMaxIndicator: model.SelectTypeMinimum}, &model.FetchOption{}, ids...)
 	if err != nil {
 		err = errors.Wrap(err, "FetchByIdsWithKey error")
@@ -139,14 +137,14 @@ func FetchOldest(connectionURL string, ids ...string) (datas map[string]string, 
 		return nil, err
 	}
 	datas = make(map[string]string)
-	for id, point := range points {
-		datas[id] = point.Values[0]
+	for id, values := range points {
+		datas[id] = values[0].Value
 	}
 	tools.DebugLogPrintf("Debug: FetchOldest end, datas: %v\n", datas)
 	return datas, nil
 }
 
-func FetchDateRange(connectionURL string, fromDate time.Time, untilDate time.Time, option *model.FetchOption, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string](model.Value), err error) {
+func FetchDateRange(connectionURL string, fromDate time.Time, untilDate time.Time, option *model.FetchOption, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), err error) {
 	tools.DebugLogPrintf("Debug: FetchDateRange start, connectionURL: %s, fromDate: %v, untilDate: %v, option: %#v, ids: %v\n", connectionURL, fromDate, untilDate, option, ids)
 	pointSets, points, err = FetchByIdsWithKey(connectionURL, model.UserInputKeyNoID{Gteq: &fromDate, Lteq: &untilDate}, &model.FetchOption{}, ids...)
 	if err != nil {
