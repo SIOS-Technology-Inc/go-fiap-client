@@ -69,21 +69,20 @@ func fiapFetch(connectionURL string, keys []model.UserInputKey, option *model.Fe
 	return httpResponse, resBody, nil
 }
 
-func CreateFetchQueryRQ (option *model.FetchOnceOption, keys []model.UserInputKey) *model.QueryRQ {
+func CreateFetchQueryRQ(option *model.FetchOnceOption, keys []model.UserInputKey) *model.QueryRQ {
 	tools.DebugLogPrintf("Debug: CreateFetchQueryRQ start, option: %v, keys: %v\n", option, keys)
 	var uuidObj uuid.UUID
 	uuidObj, _ = uuid.NewRandom()
 
-	
 	queryRQ := &model.QueryRQ{
 		Transport: &model.Transport{
 			Header: &model.Header{
 				Query: &model.Query{
-					Id: uuidObj.String(),
+					Id:             uuidObj.String(),
 					AcceptableSize: option.AcceptableSize,
-					Type: "storage",
-					Cursor: option.Cursor,
-					Key: tools.UserInputKeysToKeys(keys),
+					Type:           "storage",
+					Cursor:         option.Cursor,
+					Key:            tools.UserInputKeysToKeys(keys),
 				},
 			},
 		},

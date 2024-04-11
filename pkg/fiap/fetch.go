@@ -11,10 +11,10 @@ import (
 
 func Fetch(connectionURL string, keys []model.UserInputKey, option *model.FetchOption) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), err error) {
 	tools.DebugLogPrintf("Debug: Fetch start, connectionURL: %s, keys: %v, option: %#v\n", connectionURL, keys, option)
-	
+
 	pointSets = make(map[string](model.ProcessedPointSet))
 	points = make(map[string]([]model.Value))
-	
+
 	// cursorの初期化
 	cursor := ""
 
@@ -23,7 +23,7 @@ func Fetch(connectionURL string, keys []model.UserInputKey, option *model.FetchO
 	for {
 		i++
 		// FetchOnceを実行
-		fetchOnceOption := &model.FetchOnceOption{AcceptableSize: option.AcceptableSize,	Cursor: cursor}
+		fetchOnceOption := &model.FetchOnceOption{AcceptableSize: option.AcceptableSize, Cursor: cursor}
 		fetchOncePointSets, fetchOncePoints, cursor, err := FetchOnce(connectionURL, keys, fetchOnceOption)
 		if err != nil {
 			err = errors.Wrapf(err, "FetchOnce error on loop iteration %d", i)
@@ -35,7 +35,7 @@ func Fetch(connectionURL string, keys []model.UserInputKey, option *model.FetchO
 			// pointSetsのkeyが設定されていない場合にはデータを代入する
 			if existingPointSet, ok := pointSets[key]; !ok {
 				pointSets[key] = value
-			// pointSetsのkeyが既に設定されていた場合にはデータを上書きせず追加する
+				// pointSetsのkeyが既に設定されていた場合にはデータを上書きせず追加する
 			} else {
 				existingPointSet.PointSetID = append(existingPointSet.PointSetID, value.PointSetID...)
 				existingPointSet.PointID = append(existingPointSet.PointID, value.PointID...)
@@ -47,7 +47,7 @@ func Fetch(connectionURL string, keys []model.UserInputKey, option *model.FetchO
 			// pointsのkeyが設定されていない場合にはデータを代入する
 			if existingPoint, ok := points[key]; !ok {
 				points[key] = values
-			// pointsのkeyが既に設定されていた場合にはデータを上書きせず追加する
+				// pointsのkeyが既に設定されていた場合にはデータを上書きせず追加する
 			} else {
 				points[key] = append(existingPoint, values...)
 			}
@@ -60,7 +60,6 @@ func Fetch(connectionURL string, keys []model.UserInputKey, option *model.FetchO
 	return pointSets, points, nil
 }
 
-
 func FetchOnce(connectionURL string, keys []model.UserInputKey, option *model.FetchOnceOption) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), cursor string, err error) {
 	tools.DebugLogPrintf("Debug: FetchOnce start, connectionURL: %s, keys: %v, option: %#v\n", connectionURL, keys, option)
 
@@ -68,7 +67,7 @@ func FetchOnce(connectionURL string, keys []model.UserInputKey, option *model.Fe
 	if err != nil {
 		err = errors.Wrap(err, "fiapFetch error")
 		log.Printf("Error: %+v\n", err)
-		return nil, nil, "", err	
+		return nil, nil, "", err
 	}
 
 	pointSets, points, cursor, err = processQueryRS(body)
@@ -76,7 +75,7 @@ func FetchOnce(connectionURL string, keys []model.UserInputKey, option *model.Fe
 		err = errors.Wrap(err, "processQueryRS error")
 		log.Printf("Error: %+v\n", err)
 		return nil, nil, "", err
-	}	else {
+	} else {
 		tools.DebugLogPrintf("Debug: FetchOnce end, pointSets: %v, points: %v, cursor: %v\n", pointSets, points, cursor)
 		return pointSets, points, cursor, nil
 	}
@@ -88,13 +87,13 @@ func FetchByIdsWithKey(connectionURL string, key model.UserInputKeyNoID, option 
 	var keys []model.UserInputKey
 	for _, id := range ids {
 		keys = append(keys, model.UserInputKey{
-			ID: id,
-			Eq: key.Eq,
-			Neq: key.Neq,
-			Lt: key.Lt,
-			Gt: key.Gt,
-			Lteq: key.Lteq,
-			Gteq: key.Gteq,
+			ID:              id,
+			Eq:              key.Eq,
+			Neq:             key.Neq,
+			Lt:              key.Lt,
+			Gt:              key.Gt,
+			Lteq:            key.Lteq,
+			Gteq:            key.Gteq,
 			MinMaxIndicator: key.MinMaxIndicator,
 		})
 	}
@@ -108,7 +107,6 @@ func FetchByIdsWithKey(connectionURL string, key model.UserInputKeyNoID, option 
 	tools.DebugLogPrintf("Debug: FetchByIdsWithKey end, pointSets: %v, points: %v\n", pointSets, points)
 	return pointSets, points, err
 }
-
 
 func FetchLatest(connectionURL string, ids ...string) (datas map[string]string, err error) {
 	tools.DebugLogPrintf("Debug: FetchLatest start, connectionURL: %s, ids: %v\n", connectionURL, ids)
@@ -156,7 +154,7 @@ func FetchDateRange(connectionURL string, fromDate time.Time, untilDate time.Tim
 	return pointSets, points, nil
 }
 
-func processQueryRS(data *model.QueryRS) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), cursor string, err error){
+func processQueryRS(data *model.QueryRS) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), cursor string, err error) {
 	tools.DebugLogPrintf("Debug: processQueryRS start, data: %#v\n", data)
 	if data == nil {
 		err = errors.New("queryRS is nil")
@@ -194,7 +192,7 @@ func processQueryRS(data *model.QueryRS) (pointSets map[string](model.ProcessedP
 			// pointSetsのkeyが設定されていない場合にはデータを代入する
 			if existingPointSet, ok := pointSets[ps.Id]; !ok {
 				pointSets[ps.Id] = proccessed
-			// pointSetsのkeyが既に設定されていた場合にはデータを上書きせず追加する
+				// pointSetsのkeyが既に設定されていた場合にはデータを上書きせず追加する
 			} else {
 				proccessed.PointSetID = append(existingPointSet.PointSetID, proccessed.PointSetID...)
 				proccessed.PointID = append(existingPointSet.PointID, proccessed.PointID...)
@@ -219,7 +217,7 @@ func processQueryRS(data *model.QueryRS) (pointSets map[string](model.ProcessedP
 			// pointsのkeyが設定されていない場合にはデータを代入する
 			if existingValues, ok := points[p.Id]; !ok {
 				points[p.Id] = values
-			// pointsのkeyが既に設定されていた場合にはデータを上書きせず追加する
+				// pointsのkeyが既に設定されていた場合にはデータを上書きせず追加する
 			} else {
 				points[p.Id] = append(existingValues, values...)
 			}

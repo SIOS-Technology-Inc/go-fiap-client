@@ -90,7 +90,7 @@ func (p *PointSet) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 		return err
 	}
 	p.Id = aux.Id
-	
+
 	//pointSetがnilでない場合、pointSetIDとpointIDをstringの配列として格納
 	if aux.PointSet != nil {
 		// 受け取ったポイントセットをループさせる
