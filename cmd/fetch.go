@@ -1,10 +1,12 @@
 package cmd
 
 import (
+	"encoding/json"
 	"io"
 	"os"
 	"time"
 
+	"github.com/SIOS-Technology-Inc/go-fiap-client/pkg/fiap"
 	"github.com/SIOS-Technology-Inc/go-fiap-client/pkg/fiap/model"
 	"github.com/SIOS-Technology-Inc/go-fiap-client/pkg/fiap/tools"
 	"github.com/cockroachdb/errors"
@@ -13,14 +15,20 @@ import (
 
 func newFetchCmd(out io.Writer, errOut io.Writer) *cobra.Command {
 	var (
-		debug bool
+		debug        bool
 		outputString string
 		selectString string
-		fromString string
-		untilString string
-		neString string
+		fromString   string
+		untilString  string
+		neString     string
 
 		output *os.File
+		result struct {
+			PointSets map[string](model.ProcessedPointSet) `json:"point_sets,omitempty"`
+			Points    map[string](model.ProcessedPoint)    `json:"points,omitempty"`
+			Cursor    string                               `json:"cursor,omitempty"`
+		}
+		formattedResult []byte
 	)
 
 	cmd := &cobra.Command{
@@ -28,17 +36,17 @@ func newFetchCmd(out io.Writer, errOut io.Writer) *cobra.Command {
 		Short: "Run FIAP fetch method once",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			argumentErrors := make([]error, 0, 5)
-			keys := make([]model.UserInputKey, 1, 1)
+			keys := make([]model.UserInputKey, 1)
 
 			switch selectString {
-				case "max":
-					keys[0].MinMaxIndicator = model.SelectTypeMaximum
-				case "min":
-					keys[0].MinMaxIndicator = model.SelectTypeMinimum
-				case "none":
-					keys[0].MinMaxIndicator = model.SelectTypeNone
-				default:
-					argumentErrors = append(argumentErrors, errors.New("select type allows only max, min, or none"))
+			case "max":
+				keys[0].MinMaxIndicator = model.SelectTypeMaximum
+			case "min":
+				keys[0].MinMaxIndicator = model.SelectTypeMinimum
+			case "none":
+				keys[0].MinMaxIndicator = model.SelectTypeNone
+			default:
+				argumentErrors = append(argumentErrors, errors.New("select type allows only max, min, or none"))
 			}
 			if fromString != "" {
 				if dt, err := time.Parse(time.RFC3339, fromString); err == nil {
@@ -70,6 +78,7 @@ func newFetchCmd(out io.Writer, errOut io.Writer) *cobra.Command {
 			if len(argumentErrors) > 0 {
 				return errors.Join(argumentErrors...)
 			}
+			cmd.SilenceUsage = true
 
 			connectionURL := args[0]
 			keys[0].ID = args[1]
@@ -82,17 +91,54 @@ func newFetchCmd(out io.Writer, errOut io.Writer) *cobra.Command {
 				}
 			}
 
-			cmd.Println("url:", connectionURL)
-			cmd.Println("id:", keys[0].ID)
-			cmd.Println("debug", tools.DEBUG)
-			cmd.Println("output", outputString)
-			cmd.Println("select", keys[0].MinMaxIndicator)
-			cmd.Println("from", keys[0].Gteq)
-			cmd.Println("until", keys[0].Lteq)
-			cmd.Println("ne", keys[0].Neq)
-			if output != nil {
+			if debug {
+				cmd.Println("url:", connectionURL)
+				cmd.Println("id:", keys[0].ID)
+				cmd.Println("debug:", tools.DEBUG)
+				cmd.Println("output:", outputString)
+				cmd.Println("select:", keys[0].MinMaxIndicator)
+				cmd.Println("from:", keys[0].Gteq)
+				cmd.Println("until:", keys[0].Lteq)
+				cmd.Println("ne:", keys[0].Neq)
+			}
+
+			if pointSets, points, cursor, err := fiap.FetchOnce(connectionURL, keys, &model.FetchOnceOption{}); err == nil {
+				result.PointSets = pointSets
+				result.Points = points
+				result.Cursor = cursor
+			} else {
+				argumentErrors = append(argumentErrors, errors.Wrapf(err, "failed to fetch from %s", connectionURL))
+				if output != nil {
+					if err := output.Close(); err != nil {
+						argumentErrors = append(argumentErrors, errors.Wrapf(err, "failed to close file '%s'", outputString))
+					}
+				}
+				return errors.Join(argumentErrors...)
+			}
+
+			if b, err := json.Marshal(&result); err == nil {
+				formattedResult = b
+			} else {
+				argumentErrors = append(argumentErrors, errors.Wrap(err, "failed to format output to json"))
+				if output != nil {
+					if err := output.Close(); err != nil {
+						argumentErrors = append(argumentErrors, errors.Wrapf(err, "failed to close file '%s'", outputString))
+					}
+				}
+				return errors.Join(argumentErrors...)
+			}
+
+			if output == nil {
+				cmd.Println(string(formattedResult))
+			} else {
+				if _, err := output.Write(formattedResult); err != nil {
+					argumentErrors = append(argumentErrors, errors.Wrapf(err, "failed to write file '%s'", outputString))
+				}
 				if err := output.Close(); err != nil {
-					return errors.Wrapf(err, "failed to close file '%s'", outputString)
+					argumentErrors = append(argumentErrors, errors.Wrapf(err, "failed to close file '%s'", outputString))
+				}
+				if len(argumentErrors) > 0 {
+					return errors.Join(argumentErrors...)
 				}
 			}
 			return nil
