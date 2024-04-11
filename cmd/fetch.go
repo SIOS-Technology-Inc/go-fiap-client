@@ -23,12 +23,6 @@ func newFetchCmd(out io.Writer, errOut io.Writer) *cobra.Command {
 		neString     string
 
 		output *os.File
-		result struct {
-			PointSets map[string](model.ProcessedPointSet) `json:"point_sets,omitempty"`
-			Points    map[string](model.ProcessedPoint)    `json:"points,omitempty"`
-			Cursor    string                               `json:"cursor,omitempty"`
-		}
-		formattedResult []byte
 	)
 
 	cmd := &cobra.Command{
@@ -102,44 +96,25 @@ func newFetchCmd(out io.Writer, errOut io.Writer) *cobra.Command {
 				cmd.Println("ne:", keys[0].Neq)
 			}
 
-			if pointSets, points, cursor, err := fiap.FetchOnce(connectionURL, keys, &model.FetchOnceOption{}); err == nil {
-				result.PointSets = pointSets
-				result.Points = points
-				result.Cursor = cursor
-			} else {
-				argumentErrors = append(argumentErrors, errors.Wrapf(err, "failed to fetch from %s", connectionURL))
+			if jsonResult, err := executeFetch(connectionURL, keys, &model.FetchOnceOption{}); err == nil {
 				if output != nil {
-					if err := output.Close(); err != nil {
-						argumentErrors = append(argumentErrors, errors.Wrapf(err, "failed to close file '%s'", outputString))
+					if _, err := output.Write(jsonResult); err != nil {
+						argumentErrors = append(argumentErrors, errors.Wrapf(err, "failed to write file '%s'", outputString))
 					}
+				} else {
+					cmd.Println(string(jsonResult))
 				}
-				return errors.Join(argumentErrors...)
+			} else {
+				argumentErrors = append(argumentErrors, err)
 			}
 
-			if b, err := json.Marshal(&result); err == nil {
-				formattedResult = b
-			} else {
-				argumentErrors = append(argumentErrors, errors.Wrap(err, "failed to format output to json"))
-				if output != nil {
-					if err := output.Close(); err != nil {
-						argumentErrors = append(argumentErrors, errors.Wrapf(err, "failed to close file '%s'", outputString))
-					}
-				}
-				return errors.Join(argumentErrors...)
-			}
-
-			if output == nil {
-				cmd.Println(string(formattedResult))
-			} else {
-				if _, err := output.Write(formattedResult); err != nil {
-					argumentErrors = append(argumentErrors, errors.Wrapf(err, "failed to write file '%s'", outputString))
-				}
+			if output != nil {
 				if err := output.Close(); err != nil {
 					argumentErrors = append(argumentErrors, errors.Wrapf(err, "failed to close file '%s'", outputString))
 				}
-				if len(argumentErrors) > 0 {
-					return errors.Join(argumentErrors...)
-				}
+			}
+			if len(argumentErrors) > 0 {
+				return errors.Join(argumentErrors...)
 			}
 			return nil
 		},
@@ -156,4 +131,26 @@ func newFetchCmd(out io.Writer, errOut io.Writer) *cobra.Command {
 	cmd.Flags().StringVar(&neString, "ne", "", "filter query not equal datetime string=<Datetime in RFC 3339 format>")
 
 	return cmd
+}
+
+func executeFetch(connectionURL string, keys []model.UserInputKey, option *model.FetchOnceOption) ([]byte, error) {
+	var result struct {
+		PointSets map[string](model.ProcessedPointSet) `json:"point_sets,omitempty"`
+		Points    map[string](model.ProcessedPoint)    `json:"points,omitempty"`
+		Cursor    string                               `json:"cursor,omitempty"`
+	}
+
+	if pointSets, points, cursor, err := fiap.FetchOnce(connectionURL, keys, &model.FetchOnceOption{}); err == nil {
+		result.PointSets = pointSets
+		result.Points = points
+		result.Cursor = cursor
+	} else {
+		return nil, errors.Wrapf(err, "failed to fetch from %s", connectionURL)
+	}
+
+	if b, err := json.Marshal(&result); err == nil {
+		return b, nil
+	} else {
+		return nil, errors.Wrap(err, "failed to format output to json")
+	}
 }
