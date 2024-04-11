@@ -51,7 +51,7 @@ func fiapFetch(connectionURL string, keys []model.UserInputKey, option *model.Fe
 	}
 
 	// クエリを作成
-	queryRQ := CreateFetchQueryRQ(option, keys)
+	queryRQ := newQueryRQ(option, keys)
 	resBody = &model.QueryRS{}
 
 	// クエリを実行
@@ -69,7 +69,7 @@ func fiapFetch(connectionURL string, keys []model.UserInputKey, option *model.Fe
 	return httpResponse, resBody, nil
 }
 
-func CreateFetchQueryRQ(option *model.FetchOnceOption, keys []model.UserInputKey) *model.QueryRQ {
+func newQueryRQ(option *model.FetchOnceOption, keys []model.UserInputKey) *model.QueryRQ {
 	tools.DebugLogPrintf("Debug: CreateFetchQueryRQ start, option: %v, keys: %v\n", option, keys)
 	var uuidObj uuid.UUID
 	uuidObj, _ = uuid.NewRandom()
