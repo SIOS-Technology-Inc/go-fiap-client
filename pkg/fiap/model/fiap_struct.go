@@ -23,6 +23,8 @@ const (
 type TrapType string
 
 type Key struct {
+	XMLName xml.Name `xml:"http://gutp.jp/fiap/2009/11/ key"`
+
 	Id string `xml:"id,attr,omitempty" json:"id,omitempty"`
 
 	AttrName string `xml:"attrName,attr,omitempty" json:"attr_name,omitempty"`
@@ -42,13 +44,9 @@ type Key struct {
 	Select SelectType `xml:"select,attr,omitempty" json:"select,omitempty"`
 }
 
-type NonNegativeInteger uint
-
-// TODO: uintは符号なし整数を表すため、0を許容する
-// 0を許容しない場合は、関数の処理に注意が必要
-type PositiveInteger uint
-
 type Query struct {
+	XMLName xml.Name `xml:"http://gutp.jp/fiap/2009/11/ query"`
+
 	Key []Key `xml:"key,omitempty" json:"key,omitempty"`
 
 	Id string `xml:"id,attr,omitempty" json:"id,omitempty"`
@@ -68,6 +66,8 @@ type OK struct {
 }
 
 type Header struct {
+	XMLName xml.Name `xml:"http://gutp.jp/fiap/2009/11/ header"`
+
 	OK *OK `xml:"OK,omitempty" json:"ok,omitempty"`
 
 	Error *Error `xml:"error,omitempty" json:"error,omitempty"`
@@ -76,12 +76,16 @@ type Header struct {
 }
 
 type Value struct {
+	XMLName xml.Name `xml:"http://gutp.jp/fiap/2009/11/ value"`	
+
 	Time time.Time `xml:"time,attr,omitempty" json:"time,omitempty"`
 
 	Value string `xml:",chardata" json:"value"`
 }
 
 type Point struct {
+	XMLName xml.Name `xml:"http://gutp.jp/fiap/2009/11/ point"`
+
 	Value []*Value `xml:"value,omitempty" json:"value,omitempty"`
 
 	Id string `xml:"id,attr,omitempty" json:"id,omitempty"`
@@ -124,6 +128,8 @@ func (p *PointSet) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 }
 
 type OriginalPointSet struct {
+	XMLName xml.Name `xml:"http://gutp.jp/fiap/2009/11/ pointSet"`
+
 	PointSet []*OriginalPointSet `xml:"pointSet,omitempty" json:"point_set,omitempty"`
 
 	Point []*Point `xml:"point,omitempty" json:"point,omitempty"`
@@ -132,12 +138,16 @@ type OriginalPointSet struct {
 }
 
 type Body struct {
+	XMLName xml.Name `xml:"http://gutp.jp/fiap/2009/11/ body"`
+
 	PointSet []*PointSet `xml:"pointSet,omitempty" json:"point_set,omitempty"`
 
 	Point []*Point `xml:"point,omitempty" json:"point,omitempty"`
 }
 
 type Transport struct {
+	XMLName xml.Name `xml:"http://gutp.jp/fiap/2009/11/ transport"`
+
 	Header *Header `xml:"header,omitempty" json:"header,omitempty"`
 
 	Body *Body `xml:"body,omitempty" json:"body,omitempty"`
