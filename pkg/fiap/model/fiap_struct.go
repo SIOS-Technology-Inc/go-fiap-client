@@ -74,7 +74,6 @@ type Point struct {
 	Id string `xml:"id,attr,omitempty" json:"id,omitempty"`
 }
 
-// TODO PointSet内のPointSetの型を必要に応じて変更する（stringの配列にする?）
 type PointSet struct {
 	PointSetId []*string `json:"point_set_id,omitempty"`
 
@@ -84,31 +83,33 @@ type PointSet struct {
 }
 
 func (p *PointSet) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
-	aux := &OriginalPointSet{}
+	aux := new(OriginalPointSet)
 
-	if err := d.DecodeElement(aux, &start); err != nil {
+	if err := d.DecodeElement(&aux, &start); err != nil {
 		return err
 	}
 	p.Id = aux.Id
+
+	// pointSetIdとpointIdを初期化
+	p.PointSetId = make([]*string, 0)
+	p.PointId = make([]*string, 0)
 
 	//pointSetがnilでない場合、pointSetIDとpointIDをstringの配列として格納
 	if aux.PointSet != nil {
 		// 受け取ったポイントセットをループさせる
 		for _, pointSet := range aux.PointSet {
-			// ポイントセット直下のpointSetをループ処理
-			for _, pointSetSecondLayerPointset := range pointSet.PointSet {
-				s := pointSetSecondLayerPointset.Id
-				p.PointSetId = append(p.PointSetId, &s)
-			}
-			// ポイントセット直下のpointをループ処理
-			for _, pointSetSecondLayerPoint := range pointSet.Point {
-				s := pointSetSecondLayerPoint.Id
-				p.PointId = append(p.PointId, &s)
-			}
+			s := pointSet.Id
+			p.PointSetId = append(p.PointSetId, &s)
+		}
+		// 受け取ったポイントをループさせる
+		for _, point := range aux.Point {
+			s := point.Id
+			p.PointId = append(p.PointId, &s)
 		}
 	}
 	return nil
 }
+
 
 type OriginalPointSet struct {
 	PointSet []*OriginalPointSet `xml:"pointSet,omitempty" json:"point_set,omitempty"`
