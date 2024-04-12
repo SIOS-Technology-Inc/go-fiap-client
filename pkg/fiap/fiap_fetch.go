@@ -60,7 +60,7 @@ func fiapFetch(connectionURL string, keys []model.UserInputKey, option *model.Fe
 	tools.DebugLogPrintf("Debug: fiapFetch, client.Call end, httpResponse: %#v, resBody: %#v\n", httpResponse, resBody)
 
 	if err != nil {
-		err = errors.Wrap(err, "fiapFetch, client.Call error")
+		err = errors.Wrap(err, "client.Call error")
 		log.Printf("Error: %+v\n", err)
 		return nil, nil, err
 	}
