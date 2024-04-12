@@ -45,11 +45,6 @@ func fiapFetch(connectionURL string, keys []model.UserInputKey, option *model.Fe
 
 	client := soap.NewClient(connectionURL, nil)
 
-	// デフォルト値の設定
-	if option == nil {
-		option = &model.FetchOnceOption{}
-	}
-
 	// クエリを作成
 	queryRQ := newQueryRQ(option, keys)
 	resBody = &model.QueryRS{}
@@ -71,6 +66,12 @@ func fiapFetch(connectionURL string, keys []model.UserInputKey, option *model.Fe
 
 func newQueryRQ(option *model.FetchOnceOption, keys []model.UserInputKey) *model.QueryRQ {
 	tools.DebugLogPrintf("Debug: CreateFetchQueryRQ start, option: %v, keys: %v\n", option, keys)
+
+	// デフォルト値の設定
+	if option == nil {
+		option = &model.FetchOnceOption{}
+	}
+
 	var uuidObj uuid.UUID
 	uuidObj, _ = uuid.NewRandom()
 
