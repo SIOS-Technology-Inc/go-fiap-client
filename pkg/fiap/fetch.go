@@ -154,6 +154,7 @@ func FetchDateRange(connectionURL string, fromDate time.Time, untilDate time.Tim
 	return pointSets, points, nil
 }
 
+// processQueryRS はQueryRSを処理し、IDをキーとしたPointSetとPointのmapを返す
 func processQueryRS(data *model.QueryRS) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), cursor string, err error) {
 	tools.DebugLogPrintf("Debug: processQueryRS start, data: %#v\n", data)
 	if data == nil {
@@ -233,10 +234,7 @@ func processQueryRS(data *model.QueryRS) (pointSets map[string](model.ProcessedP
 		cursor = ""
 	}
 
-	if cursor != "" {
-		tools.DebugLogPrintf("Debug: processQueryRS end, pointSets: %v, points: %v, cursor: %v\n", pointSets, points, cursor)
-	} else {
-		tools.DebugLogPrintf("Debug: processQueryRS end with no cursor, pointSets: %v, points: %v\n", pointSets, points)
-	}
+	tools.DebugLogPrintf("Debug: processQueryRS end, pointSets: %v, points: %v, cursor: %s\n", pointSets, points, cursor)
+	
 	return pointSets, points, cursor, nil
 }
