@@ -83,6 +83,11 @@ func FetchOnce(connectionURL string, keys []model.UserInputKey, option *model.Fe
 
 func FetchByIdsWithKey(connectionURL string, key model.UserInputKeyNoID, option *model.FetchOption, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), err error) {
 	tools.DebugLogPrintf("Debug: FetchByIdsWithKey start, connectionURL: %s, key: %v, option: %#v, ids: %v\n", connectionURL, key, option, ids)
+	if len(ids) == 0 {
+		err = errors.New("ids is empty, set at least one id")
+		log.Printf("Error: %+v\n", err)
+		return nil, nil, err
+	}
 	// Fetchのためのキーを作成
 	var keys []model.UserInputKey
 	for _, id := range ids {
