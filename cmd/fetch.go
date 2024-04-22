@@ -20,9 +20,11 @@ func newFetchCmd(out io.Writer, errOut io.Writer) *cobra.Command {
 		selectString string
 		fromString   string
 		untilString  string
-		neString     string
 
-		output *os.File
+		output     *os.File
+		selectType model.SelectType = model.SelectTypeMaximum
+		fromDate   *time.Time
+		untilDate  *time.Time
 	)
 
 	cmd := &cobra.Command{
@@ -30,37 +32,29 @@ func newFetchCmd(out io.Writer, errOut io.Writer) *cobra.Command {
 		Short: "Run FIAP fetch method once",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			argumentErrors := make([]error, 0, 5)
-			keys := make([]model.UserInputKey, 1)
 
 			switch selectString {
 			case "max":
-				keys[0].MinMaxIndicator = model.SelectTypeMaximum
+				selectType = model.SelectTypeMaximum
 			case "min":
-				keys[0].MinMaxIndicator = model.SelectTypeMinimum
+				selectType = model.SelectTypeMinimum
 			case "none":
-				keys[0].MinMaxIndicator = model.SelectTypeNone
+				selectType = model.SelectTypeNone
 			default:
 				argumentErrors = append(argumentErrors, errors.New("select type allows only max, min, or none"))
 			}
 			if fromString != "" {
 				if dt, err := time.Parse(time.RFC3339, fromString); err == nil {
-					keys[0].Gteq = &dt
+					fromDate = &dt
 				} else {
 					argumentErrors = append(argumentErrors, errors.Wrap(err, "from allows only datetime in RFC3339 format"))
 				}
 			}
 			if untilString != "" {
 				if dt, err := time.Parse(time.RFC3339, untilString); err == nil {
-					keys[0].Lteq = &dt
+					untilDate = &dt
 				} else {
 					argumentErrors = append(argumentErrors, errors.Wrap(err, "until allows only datetime in RFC3339 format"))
-				}
-			}
-			if neString != "" {
-				if dt, err := time.Parse(time.RFC3339, neString); err == nil {
-					keys[0].Neq = &dt
-				} else {
-					argumentErrors = append(argumentErrors, errors.Wrap(err, "ne allows only datetime in RFC3339 format"))
 				}
 			}
 			if len(args) < 2 {
@@ -75,7 +69,7 @@ func newFetchCmd(out io.Writer, errOut io.Writer) *cobra.Command {
 			cmd.SilenceUsage = true
 
 			connectionURL := args[0]
-			keys[0].ID = args[1]
+			id := args[1]
 			tools.DEBUG = debug
 			if outputString != "" {
 				if f, err := os.Create(outputString); err == nil {
@@ -87,16 +81,15 @@ func newFetchCmd(out io.Writer, errOut io.Writer) *cobra.Command {
 
 			if debug {
 				cmd.Println("url:", connectionURL)
-				cmd.Println("id:", keys[0].ID)
+				cmd.Println("id:", id)
 				cmd.Println("debug:", tools.DEBUG)
 				cmd.Println("output:", outputString)
-				cmd.Println("select:", keys[0].MinMaxIndicator)
-				cmd.Println("from:", keys[0].Gteq)
-				cmd.Println("until:", keys[0].Lteq)
-				cmd.Println("ne:", keys[0].Neq)
+				cmd.Println("select:", selectType)
+				cmd.Println("from:", fromDate)
+				cmd.Println("until:", untilDate)
 			}
 
-			if jsonResult, err := executeFetch(connectionURL, keys, &model.FetchOnceOption{}); err == nil {
+			if jsonResult, err := executeFetch(connectionURL, id, fromDate, untilDate, selectType); err == nil {
 				if output != nil {
 					if _, err := output.Write(jsonResult); err != nil {
 						argumentErrors = append(argumentErrors, errors.Wrapf(err, "failed to write file '%s'", outputString))
@@ -128,24 +121,37 @@ func newFetchCmd(out io.Writer, errOut io.Writer) *cobra.Command {
 	cmd.Flags().StringVarP(&selectString, "select", "s", "max", "fiap select option. string=<max|min|none>")
 	cmd.Flags().StringVar(&fromString, "from", "", "filter query from datetime string=<Datetime in RFC 3339 format>")
 	cmd.Flags().StringVar(&untilString, "until", "", "filter query until datetime string=<Datetime in RFC 3339 format>")
-	cmd.Flags().StringVar(&neString, "ne", "", "filter query not equal datetime string=<Datetime in RFC 3339 format>")
 
 	return cmd
 }
 
-func executeFetch(connectionURL string, keys []model.UserInputKey, option *model.FetchOnceOption) ([]byte, error) {
+func executeFetch(connectionURL string, id string, fromDate, untilDate *time.Time, selectType model.SelectType) ([]byte, error) {
 	var result struct {
 		PointSets map[string](model.ProcessedPointSet) `json:"point_sets,omitempty"`
-		Points    map[string](model.ProcessedPoint)    `json:"points,omitempty"`
-		Cursor    string                               `json:"cursor,omitempty"`
+		Points    map[string]([]model.Value)           `json:"points,omitempty"`
+		Datas     map[string](string)                  `json:"datas,omitempty"`
 	}
 
-	if pointSets, points, cursor, err := fiap.FetchOnce(connectionURL, keys, &model.FetchOnceOption{}); err == nil {
-		result.PointSets = pointSets
-		result.Points = points
-		result.Cursor = cursor
-	} else {
-		return nil, errors.Wrapf(err, "failed to fetch from %s", connectionURL)
+	switch selectType {
+	case model.SelectTypeMaximum:
+		if datas, err := fiap.FetchLatest(connectionURL, fromDate, untilDate, id); err == nil {
+			result.Datas = datas
+		} else {
+			return nil, errors.Wrapf(err, "failed to fetch from %s", connectionURL)
+		}
+	case model.SelectTypeMinimum:
+		if datas, err := fiap.FetchOldest(connectionURL, fromDate, untilDate, id); err == nil {
+			result.Datas = datas
+		} else {
+			return nil, errors.Wrapf(err, "failed to fetch from %s", connectionURL)
+		}
+	case model.SelectTypeNone:
+		if pointSets, points, err := fiap.FetchDateRange(connectionURL, fromDate, untilDate, id); err == nil {
+			result.PointSets = pointSets
+			result.Points = points
+		} else {
+			return nil, errors.Wrapf(err, "failed to fetch from %s", connectionURL)
+		}
 	}
 
 	if b, err := json.Marshal(&result); err == nil {
