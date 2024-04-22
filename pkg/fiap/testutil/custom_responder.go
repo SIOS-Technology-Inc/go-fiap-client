@@ -26,3 +26,18 @@ func CustomBodyResponder(bodyContent string) httpmock.Responder {
 	</soapenv:Envelope>`
 	return httpmock.NewStringResponder(200, fmt.Sprintf(responseTemplate, bodyContent))
 }
+
+func CustomHeaderBodyResponder(bodyContent string) httpmock.Responder {
+	responseTemplate := `<?xml version='1.0' encoding='utf-8'?>
+			<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+			<soapenv:Header/>
+			<soapenv:Body>
+					<ns2:queryRS xmlns:ns2="http://soap.fiap.org/">
+							<transport xmlns="http://gutp.jp/fiap/2009/11/">
+									%s
+							</transport>
+					</ns2:queryRS>
+			</soapenv:Body>
+	</soapenv:Envelope>`
+	return httpmock.NewStringResponder(200, fmt.Sprintf(responseTemplate, bodyContent))
+}
