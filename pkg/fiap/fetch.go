@@ -165,30 +165,25 @@ func FetchDateRange(connectionURL string, fromDate *time.Time, untilDate *time.T
 }
 
 // processQueryRS はQueryRSを処理し、IDをキーとしたPointSetとPointのmapを返す
-func processQueryRS(data *model.QueryRS) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), cursor string, err error) {
-	tools.DebugLogPrintf("Debug: processQueryRS start, data: %#v\n", data)
-	if data == nil {
-		err = errors.New("queryRS is nil")
-		log.Printf("Error: %+v\n", err)
-		return nil, nil, "", err
-	}
-	if data.Transport == nil {
+func processQueryRS(queryRS *model.QueryRS) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), cursor string, err error) {
+	tools.DebugLogPrintf("Debug: processQueryRS start, data: %#v\n", queryRS)
+	if queryRS.Transport == nil {
 		err = errors.New("transport is nil")
 		log.Printf("Error: %+v\n", err)
 		return nil, nil, "", err
 	}
-	if data.Transport.Body == nil {
+	if queryRS.Transport.Body == nil {
 		return nil, nil, "", nil
 	}
 
 	// BodyにPointSetが返っていれば、それを処理する
-	tools.DebugLogPrintf("Debug: processQueryRS, data.Transport.Body.PointSet: %#v\n", data.Transport.Body.PointSet)
-	if data.Transport.Body.PointSet != nil {
+	tools.DebugLogPrintf("Debug: processQueryRS, data.Transport.Body.PointSet: %#v\n", queryRS.Transport.Body.PointSet)
+	if queryRS.Transport.Body.PointSet != nil {
 		tools.DebugLogPrintln("Debug: processQueryRS, pointSet is not nil")
 		// pointSetsを初期化
 		pointSets = make(map[string](model.ProcessedPointSet))
 		// PointSetの数だけ処理を繰り返す
-		for _, ps := range data.Transport.Body.PointSet {
+		for _, ps := range queryRS.Transport.Body.PointSet {
 			proccessed := model.ProcessedPointSet{}
 			for _, id := range ps.PointSetId {
 				if id != nil {
@@ -216,11 +211,11 @@ func processQueryRS(data *model.QueryRS) (pointSets map[string](model.ProcessedP
 	}
 
 	// BodyにPointが返っていれば、それを処理する
-	if data.Transport.Body.Point != nil {
+	if queryRS.Transport.Body.Point != nil {
 		// pointsを初期化
 		points = make(map[string]([]model.Value))
 		// Pointの数だけ処理を繰り返す
-		for _, p := range data.Transport.Body.Point {
+		for _, p := range queryRS.Transport.Body.Point {
 			values := make([]model.Value, len(p.Value))
 			for i, v := range p.Value {
 				values[i] = *v
@@ -238,8 +233,8 @@ func processQueryRS(data *model.QueryRS) (pointSets map[string](model.ProcessedP
 	}
 
 	// QueryクラスにCursorがあれば、それを処理する
-	if data.Transport.Header.Query.Cursor != "" {
-		cursor = data.Transport.Header.Query.Cursor
+	if queryRS.Transport.Header.Query.Cursor != "" {
+		cursor = queryRS.Transport.Header.Query.Cursor
 	} else {
 		cursor = ""
 	}
