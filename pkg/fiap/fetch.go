@@ -113,10 +113,9 @@ func FetchByIdsWithKey(connectionURL string, key model.UserInputKeyNoID, ids ...
 	return pointSets, points, err
 }
 
-func FetchLatest(connectionURL string, fromDate *time.Time, untilDate *time.Time ,ids ...string) (datas map[string]string, err error) {
+func FetchLatest(connectionURL string, fromDate *time.Time, untilDate *time.Time ,ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), err error) {
 	tools.DebugLogPrintf("Debug: FetchLatest start connectionURL: %s, fromDate: %v, untilDate: %v, ids: %v\n", connectionURL, fromDate, untilDate, ids)
-	var points map[string]([]model.Value)
-	_, points, err = FetchByIdsWithKey(connectionURL, model.UserInputKeyNoID{
+	pointSets, points, err = FetchByIdsWithKey(connectionURL, model.UserInputKeyNoID{
 		MinMaxIndicator: model.SelectTypeMaximum,
 		Gteq:            fromDate,
 		Lteq:            untilDate,
@@ -124,20 +123,15 @@ func FetchLatest(connectionURL string, fromDate *time.Time, untilDate *time.Time
 	if err != nil {
 		err = errors.Wrap(err, "FetchByIdsWithKey error")
 		log.Printf("Error: %+v\n", err)
-		return nil, err
+		return nil, nil, err
 	}
-	datas = make(map[string]string)
-	for id, values := range points {
-		datas[id] = values[0].Value
-	}
-	tools.DebugLogPrintf("Debug: FetchLatest end, datas: %v\n", datas)
-	return datas, nil
+	tools.DebugLogPrintf("Debug: FetchLatest end, pointSets: %v, points: %v\n", pointSets, points)
+	return pointSets, points, nil
 }
 
-func FetchOldest(connectionURL string, fromDate *time.Time, untilDate *time.Time, ids ...string) (datas map[string]string, err error) {
+func FetchOldest(connectionURL string, fromDate *time.Time, untilDate *time.Time, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), err error) {
 	tools.DebugLogPrintf("Debug: FetchOldest start connectionURL: %s, fromDate: %v, untilDate: %v, ids: %v\n", connectionURL, fromDate, untilDate, ids)
-	var points map[string]([]model.Value)
-	_, points, err = FetchByIdsWithKey(connectionURL, model.UserInputKeyNoID{
+	pointSets, points, err = FetchByIdsWithKey(connectionURL, model.UserInputKeyNoID{
 		MinMaxIndicator: model.SelectTypeMinimum,
 		Gteq:            fromDate,
 		Lteq:            untilDate,
@@ -145,14 +139,10 @@ func FetchOldest(connectionURL string, fromDate *time.Time, untilDate *time.Time
 	if err != nil {
 		err = errors.Wrap(err, "FetchByIdsWithKey error")
 		log.Printf("Error: %+v\n", err)
-		return nil, err
+		return nil, nil, err
 	}
-	datas = make(map[string]string)
-	for id, values := range points {
-		datas[id] = values[0].Value
-	}
-	tools.DebugLogPrintf("Debug: FetchOldest end, datas: %v\n", datas)
-	return datas, nil
+	tools.DebugLogPrintf("Debug: FetchOldest end, pointSets: %v, points: %v\n", pointSets, points)
+	return pointSets, points, nil
 }
 
 func FetchDateRange(connectionURL string, fromDate *time.Time, untilDate *time.Time, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), err error) {
