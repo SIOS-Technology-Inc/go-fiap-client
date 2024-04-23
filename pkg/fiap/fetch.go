@@ -24,7 +24,7 @@ func Fetch(connectionURL string, keys []model.UserInputKey, option *model.FetchO
 		i++
 		// FetchOnceを実行
 		fetchOnceOption := &model.FetchOnceOption{AcceptableSize: option.AcceptableSize, Cursor: cursor}
-		fetchOncePointSets, fetchOncePoints, cursor, err := FetchOnce(connectionURL, keys, fetchOnceOption)
+		fetchOncePointSets, fetchOncePoints, newCursor, err := FetchOnce(connectionURL, keys, fetchOnceOption)
 		if err != nil {
 			err = errors.Wrapf(err, "FetchOnce error on loop iteration %d", i)
 			log.Printf("Error: %+v\n", err)
@@ -52,9 +52,10 @@ func Fetch(connectionURL string, keys []model.UserInputKey, option *model.FetchO
 				points[key] = append(existingPoint, values...)
 			}
 		}
-		if cursor == "" {
+		if newCursor == "" {
 			break
 		}
+		cursor = newCursor
 	}
 	tools.DebugLogPrintf("Debug: Fetch end, pointSets: %v, points: %v\n", pointSets, points)
 	return pointSets, points, nil
