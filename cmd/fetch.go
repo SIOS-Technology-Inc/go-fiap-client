@@ -13,6 +13,18 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type cmdFetchFunc func(string, *time.Time, *time.Time, ...string) (map[string](model.ProcessedPointSet), map[string]([]model.Value), *model.Error, error)
+
+var (
+	fetchLatest    cmdFetchFunc = fiap.FetchLatest
+	fetchOldest    cmdFetchFunc = fiap.FetchOldest
+	fetchDateRange cmdFetchFunc = fiap.FetchDateRange
+
+	createFile func(string) (io.WriteCloser, error) = func(name string) (io.WriteCloser, error) {
+		return os.Create(name)
+	}
+)
+
 func newFetchCmd(out io.Writer, errOut io.Writer) *cobra.Command {
 	var (
 		debug        bool
@@ -21,7 +33,7 @@ func newFetchCmd(out io.Writer, errOut io.Writer) *cobra.Command {
 		fromString   string
 		untilString  string
 
-		output     *os.File
+		output     io.WriteCloser
 		selectType model.SelectType = model.SelectTypeMaximum
 		fromDate   *time.Time
 		untilDate  *time.Time
@@ -31,7 +43,7 @@ func newFetchCmd(out io.Writer, errOut io.Writer) *cobra.Command {
 		Use:   "fetch [flags] URL (POINT_ID | POINTSET_ID)",
 		Short: "Run FIAP fetch method once",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			argumentErrors := make([]error, 0, 5)
+			argumentErrors := make([]error, 0, 4)
 
 			switch selectString {
 			case "max":
@@ -67,12 +79,13 @@ func newFetchCmd(out io.Writer, errOut io.Writer) *cobra.Command {
 				return errors.Join(argumentErrors...)
 			}
 			cmd.SilenceUsage = true
+			runtimeErrors := make([]error, 0, 3)
 
 			connectionURL := args[0]
 			id := args[1]
 			tools.DEBUG = debug
 			if outputString != "" {
-				if f, err := os.Create(outputString); err == nil {
+				if f, err := createFile(outputString); err == nil {
 					output = f
 				} else {
 					return errors.Wrapf(err, "cannnot open file '%s'", outputString)
@@ -89,25 +102,31 @@ func newFetchCmd(out io.Writer, errOut io.Writer) *cobra.Command {
 				cmd.Println("until:", untilDate)
 			}
 
-			if jsonResult, err := executeFetch(connectionURL, id, fromDate, untilDate, selectType); err == nil {
+			if jsonResult, fErr, err := executeFetch(connectionURL, id, fromDate, untilDate, selectType); err == nil {
+				if fErr != nil {
+					runtimeErrors = append(runtimeErrors, fErr)
+				}
 				if output != nil {
 					if _, err := output.Write(jsonResult); err != nil {
-						argumentErrors = append(argumentErrors, errors.Wrapf(err, "failed to write file '%s'", outputString))
+						runtimeErrors = append(runtimeErrors, errors.Wrapf(err, "failed to write file '%s'", outputString))
 					}
 				} else {
 					cmd.Println(string(jsonResult))
 				}
 			} else {
-				argumentErrors = append(argumentErrors, err)
+				if fErr != nil {
+					runtimeErrors = append(runtimeErrors, fErr)
+				}
+				runtimeErrors = append(runtimeErrors, err)
 			}
 
 			if output != nil {
 				if err := output.Close(); err != nil {
-					argumentErrors = append(argumentErrors, errors.Wrapf(err, "failed to close file '%s'", outputString))
+					runtimeErrors = append(runtimeErrors, errors.Wrapf(err, "failed to close file '%s'", outputString))
 				}
 			}
-			if len(argumentErrors) > 0 {
-				return errors.Join(argumentErrors...)
+			if len(runtimeErrors) > 0 {
+				return errors.Join(runtimeErrors...)
 			}
 			return nil
 		},
@@ -125,38 +144,49 @@ func newFetchCmd(out io.Writer, errOut io.Writer) *cobra.Command {
 	return cmd
 }
 
-func executeFetch(connectionURL string, id string, fromDate, untilDate *time.Time, selectType model.SelectType) ([]byte, error) {
+func executeFetch(connectionURL string, id string, fromDate, untilDate *time.Time, selectType model.SelectType) ([]byte, error, error) {
 	var result struct {
 		PointSets map[string](model.ProcessedPointSet) `json:"point_sets,omitempty"`
 		Points    map[string]([]model.Value)           `json:"points,omitempty"`
-		Datas     map[string](string)                  `json:"datas,omitempty"`
 	}
+	var fiapError error = nil
 
 	switch selectType {
 	case model.SelectTypeMaximum:
-		if datas, err := fiap.FetchLatest(connectionURL, fromDate, untilDate, id); err == nil {
-			result.Datas = datas
-		} else {
-			return nil, errors.Wrapf(err, "failed to fetch from %s", connectionURL)
-		}
-	case model.SelectTypeMinimum:
-		if datas, err := fiap.FetchOldest(connectionURL, fromDate, untilDate, id); err == nil {
-			result.Datas = datas
-		} else {
-			return nil, errors.Wrapf(err, "failed to fetch from %s", connectionURL)
-		}
-	case model.SelectTypeNone:
-		if pointSets, points, err := fiap.FetchDateRange(connectionURL, fromDate, untilDate, id); err == nil {
+		if pointSets, points, fiapErr, err := fetchLatest(connectionURL, fromDate, untilDate, id); err == nil {
 			result.PointSets = pointSets
 			result.Points = points
+			if fiapErr != nil {
+				fiapError = errors.Newf("fiap error: type %s, value %s", fiapErr.Type, fiapErr.Value)
+			}
 		} else {
-			return nil, errors.Wrapf(err, "failed to fetch from %s", connectionURL)
+			return nil, nil, errors.Wrapf(err, "failed to fetch from %s", connectionURL)
+		}
+	case model.SelectTypeMinimum:
+		if pointSets, points, fiapErr, err := fetchOldest(connectionURL, fromDate, untilDate, id); err == nil {
+			result.PointSets = pointSets
+			result.Points = points
+			if fiapErr != nil {
+				fiapError = errors.Newf("fiap error: type %s, value %s", fiapErr.Type, fiapErr.Value)
+			}
+		} else {
+			return nil, nil, errors.Wrapf(err, "failed to fetch from %s", connectionURL)
+		}
+	case model.SelectTypeNone:
+		if pointSets, points, fiapErr, err := fetchDateRange(connectionURL, fromDate, untilDate, id); err == nil {
+			result.PointSets = pointSets
+			result.Points = points
+			if fiapErr != nil {
+				fiapError = errors.Newf("fiap error: type %s, value %s", fiapErr.Type, fiapErr.Value)
+			}
+		} else {
+			return nil, nil, errors.Wrapf(err, "failed to fetch from %s", connectionURL)
 		}
 	}
 
 	if b, err := json.Marshal(&result); err == nil {
-		return b, nil
+		return b, fiapError, nil
 	} else {
-		return nil, errors.Wrap(err, "failed to format output to json")
+		return nil, fiapError, errors.Wrap(err, "failed to format output to json")
 	}
 }
