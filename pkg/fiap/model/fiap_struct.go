@@ -101,6 +101,8 @@ func (p *PointSet) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 			s := pointSet.Id
 			p.PointSetId = append(p.PointSetId, &s)
 		}
+	}
+	if aux.Point != nil {
 		// 受け取ったポイントをループさせる
 		for _, point := range aux.Point {
 			s := point.Id
