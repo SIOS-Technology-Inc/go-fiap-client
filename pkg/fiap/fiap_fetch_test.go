@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-	"fmt"
 	"regexp"
 
 	"github.com/jarcoal/httpmock"
@@ -286,7 +285,7 @@ func TestFiapFetchResponseOnlyMultiplePointSet(t *testing.T){
 	}
 }
 
-func TestInputErrors(t *testing.T) {
+func TestFiapFetchInputErrors(t *testing.T) {
 	// テストケースを定義
 	testCases := []struct {
 			name       string
@@ -343,7 +342,7 @@ func TestInputErrors(t *testing.T) {
 	}
 }
 
-func TestRequestFailure(t *testing.T) {
+func TestFiapFetchRequestFailure(t *testing.T) {
 	// mockの有効化
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
@@ -735,8 +734,6 @@ func TestFiapFetchRequestWithoutSpecificString(t *testing.T) {
 							return false
 						}
 						bodyString := string(bodyBytes)
-						fmt.Println(bodyString)
-
 
 						for _, tag := range tc.notExpectedString {
 							if strings.Contains(bodyString, tag) {
