@@ -183,12 +183,12 @@ func TestFiapFetchResponseOnlyOnePointSet(t *testing.T) {
 					assert.Equal(t, tc.wantRootId, QueryRS.Transport.Body.PointSet[0].Id)
 					if len(QueryRS.Transport.Body.PointSet[0].PointSetId) != 0 {
 						for i, id := range tc.wantPoinSetIds {
-								assert.Equal(t, id, *QueryRS.Transport.Body.PointSet[0].PointSetId[i])
+								assert.Equal(t, id, QueryRS.Transport.Body.PointSet[0].PointSetId[i])
 						}
 					}
 					if len(QueryRS.Transport.Body.PointSet[0].PointId) != 0 {
 						for i, id := range tc.wantPointIds {
-								assert.Equal(t, id, *QueryRS.Transport.Body.PointSet[0].PointId[i])
+								assert.Equal(t, id, QueryRS.Transport.Body.PointSet[0].PointId[i])
 						}
 					}
 			})
@@ -273,10 +273,10 @@ func TestFiapFetchResponseOnlyMultiplePointSet(t *testing.T){
 				if len(QueryRS.Transport.Body.PointSet) != 0 {
 					for i, id := range tc.wantRootId {
 							assert.Equal(t, id, QueryRS.Transport.Body.PointSet[i].Id)
-							assert.Equal(t,"http://xxxxxxxx/tokyo/building1/Temperature/", *QueryRS.Transport.Body.PointSet[i].PointId[0])
-							assert.Equal(t,"http://xxxxxxxx/tokyo/building1/Humidity/", *QueryRS.Transport.Body.PointSet[i].PointId[1])
-							assert.Equal(t,"http://xxxxxxxx/tokyo/building1/Room101/", *QueryRS.Transport.Body.PointSet[i].PointSetId[0])
-							assert.Equal(t,"http://xxxxxxxx/tokyo/building1/Room102/", *QueryRS.Transport.Body.PointSet[i].PointSetId[1])
+							assert.Equal(t,"http://xxxxxxxx/tokyo/building1/Temperature/", QueryRS.Transport.Body.PointSet[i].PointId[0])
+							assert.Equal(t,"http://xxxxxxxx/tokyo/building1/Humidity/", QueryRS.Transport.Body.PointSet[i].PointId[1])
+							assert.Equal(t,"http://xxxxxxxx/tokyo/building1/Room101/", QueryRS.Transport.Body.PointSet[i].PointSetId[0])
+							assert.Equal(t,"http://xxxxxxxx/tokyo/building1/Room102/", QueryRS.Transport.Body.PointSet[i].PointSetId[1])
 					}
 				} else {
 					assert.Empty(t, QueryRS.Transport.Body.PointSet)
