@@ -20,13 +20,13 @@ func fiapFetch(connectionURL string, keys []model.UserInputKey, option *model.Fe
 	tools.DebugLogPrintf("Debug: fiapFetch start, connectionURL: %s, keys: %v, option: %v\n", connectionURL, keys, option)
 
 	// 入力チェック
-	if connectionURL == "" {
-		err = errors.New("connectionURL is empty")
-		log.Printf("Error: %+v\n", err)
-		return nil, nil, err
-	}
+	// if connectionURL == "" {
+	// 	err = errors.Newf("connectionURL is empty, %s",	connectionURL)
+	// 	log.Printf("Error: %+v\n", err)
+	// 	return nil, nil, err
+	// }
 	if !regexpURL.Match([]byte(connectionURL)) {
-		err = errors.New("invalid connectionURL")
+		err = errors.Newf("invalid connectionURL: %s", connectionURL)
 		log.Printf("Error: %+v\n", err)
 		return nil, nil, err
 	}
@@ -37,7 +37,7 @@ func fiapFetch(connectionURL string, keys []model.UserInputKey, option *model.Fe
 	}
 	for _, key := range keys {
 		if key.ID == "" {
-			err = errors.New("keys.ID is empty")
+			err = errors.Newf("keys.ID is empty, key: %#v", keys)
 			log.Printf("Error: %+v\n", err)
 			return nil, nil, err
 		}
