@@ -2,6 +2,7 @@ package fiap
 
 import (
 	"log"
+	"net/http"
 	"time"
 
 	"github.com/SIOS-Technology-Inc/go-fiap-client/pkg/fiap/model"
@@ -69,14 +70,14 @@ func Fetch(connectionURL string, keys []model.UserInputKey, option *model.FetchO
 func FetchOnce(connectionURL string, keys []model.UserInputKey, option *model.FetchOnceOption) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), cursor string, fiapErr *model.Error ,err error) {
 	tools.DebugLogPrintf("Debug: FetchOnce start, connectionURL: %s, keys: %v, option: %#v\n", connectionURL, keys, option)
 
-	_, body, err := fiapFetch(connectionURL, keys, option)
+	httpResponse, body, err := fiapFetch(connectionURL, keys, option)
 	if err != nil {
 		err = errors.Wrap(err, "fiapFetch error")
 		log.Printf("Error: %+v\n", err)
 		return nil, nil, "", nil ,err
 	}
 
-	pointSets, points, cursor, fiapErr, err = processQueryRS(body)
+	pointSets, points, cursor, fiapErr, err = processQueryRS(httpResponse,body)
 	if err != nil {
 		err = errors.Wrap(err, "processQueryRS error")
 		log.Printf("Error: %+v\n", err)
@@ -170,25 +171,24 @@ func FetchDateRange(connectionURL string, fromDate *time.Time, untilDate *time.T
 }
 
 // processQueryRS はQueryRSを処理し、IDをキーとしたPointSetとPointのmapを返す
-func processQueryRS(queryRS *model.QueryRS) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), cursor string, fiapErr *model.Error, err error) {
+func processQueryRS(httpResponse *http.Response, queryRS *model.QueryRS) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), cursor string, fiapErr *model.Error, err error) {
 	tools.DebugLogPrintf("Debug: processQueryRS start, data: %#v\n", queryRS)
 	if queryRS.Transport == nil {
-		err = errors.New("queryRS.Transport is nil")
+		err = errors.Newf("queryRS.Transport is nil, http status: %d", httpResponse.StatusCode)
 		log.Printf("Error: %+v\n", err)
 		return nil, nil, "", nil, err
 	}
 	if queryRS.Transport.Header == nil {
-		err = errors.New("queryRS.Transport.Header is nil")
+		err = errors.Newf("queryRS.Transport.Header is nil, http status: %d", httpResponse.StatusCode)
 		log.Printf("Error: %+v\n", err)
 		return nil, nil, "", nil, err
 	}
 	if queryRS.Transport.Header.OK != nil &&
 		queryRS.Transport.Body == nil {
-		err = errors.New("queryRS.Transport.Body is nil")
+		err = errors.Newf("queryRS.Transport.Body is nil, http status: %d", httpResponse.StatusCode)
 		log.Printf("Error: %+v\n", err)
 		return nil, nil, "", nil, err
 	}
-
 	if queryRS.Transport.Header.Error != nil {
 		fiapErr = queryRS.Transport.Header.Error
 		return nil, nil, "", fiapErr, nil

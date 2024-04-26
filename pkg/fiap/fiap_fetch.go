@@ -19,12 +19,6 @@ var regexpURL = regexp.MustCompile(`^https?://`)
 func fiapFetch(connectionURL string, keys []model.UserInputKey, option *model.FetchOnceOption) (httpResponse *http.Response, resBody *model.QueryRS, err error) {
 	tools.DebugLogPrintf("Debug: fiapFetch start, connectionURL: %s, keys: %v, option: %v\n", connectionURL, keys, option)
 
-	// 入力チェック
-	// if connectionURL == "" {
-	// 	err = errors.Newf("connectionURL is empty, %s",	connectionURL)
-	// 	log.Printf("Error: %+v\n", err)
-	// 	return nil, nil, err
-	// }
 	if !regexpURL.Match([]byte(connectionURL)) {
 		err = errors.Newf("invalid connectionURL: %s", connectionURL)
 		log.Printf("Error: %+v\n", err)

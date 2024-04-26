@@ -926,16 +926,24 @@ func TestFetchOnceFiapFetchRequestError(t *testing.T){
 	assert.Contains(t, err.Error(), "client.Call error")
 }
 
-func TestFetchOnceProcessQueryRSError(t *testing.T){
+func TestFetchOnceProcessQueryRSErrorWithStatusCode(t *testing.T){
 	testcases := []struct{
 		name string
 		transport string
+		statusCode int
 		wantErr string
 	}{
 		{
 			name: "when queryRS.Transport is empty",
 			transport: "",
-			wantErr: "queryRS.Transport is nil",
+			statusCode: 200,
+			wantErr: "queryRS.Transport is nil, http status: 200",
+		},
+		{
+			name: "when queryRS.Transport is empty and status code 404",
+			transport: "",
+			statusCode: 404,
+			wantErr: "queryRS.Transport is nil, http status: 404",
 		},
 		{
 			name: "when queryRS.Transport.Header is empty",
@@ -943,7 +951,8 @@ func TestFetchOnceProcessQueryRSError(t *testing.T){
 			<transport xmlns="http://gutp.jp/fiap/2009/11/">
 			</transport>
 			`,
-			wantErr: "queryRS.Transport.Header is nil",
+			statusCode: 200,
+			wantErr: "queryRS.Transport.Header is nil, http status: 200",
 		},
 		{
 			name: "when queryRS.Transport.Header.OK exists and queryRS.Transport.Body is empty",
@@ -954,7 +963,8 @@ func TestFetchOnceProcessQueryRSError(t *testing.T){
 				</header>
 			</transport>
 			`,
-			wantErr: "queryRS.Transport.Body is nil",
+			statusCode: 200,
+			wantErr: "queryRS.Transport.Body is nil, http status: 200",
 		},
 	}
 
@@ -965,7 +975,7 @@ func TestFetchOnceProcessQueryRSError(t *testing.T){
 			defer httpmock.DeactivateAndReset()
 
 			// 下記URLにPOSTしたときの挙動を定義
-			responder := testutil.CustomTransportResponder(tc.transport)
+			responder := testutil.CustomTransportStatusCodeResponder(tc.transport, tc.statusCode)
 			httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
 
 			// テスト対象の関数を実行
@@ -1964,7 +1974,7 @@ func TestFetchLatestFetchByIdsWithKeyError(t *testing.T){
 	httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
 
 	// テスト対象の関数を実行
-	_, _, _, err := FetchLatest("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",nil,nil)
+	_, _, _, err := FetchLatest("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", nil, nil)
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "FetchByIdsWithKey error")
