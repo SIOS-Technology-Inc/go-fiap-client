@@ -36,25 +36,25 @@ func Fetch(connectionURL string, keys []model.UserInputKey, option *model.FetchO
 		
 		// pointSetにデータを追加
 		for key, value := range fetchOncePointSets {
-			// pointSetsのkeyが設定されていない場合にはデータを代入する
-			if existingPointSet, ok := pointSets[key]; !ok {
-				pointSets[key] = value
-				// pointSetsのkeyが既に設定されていた場合にはデータを上書きせず追加する
-			} else {
+			tempPointSet := value
+			// keyが既に設定されている場合は既存データに追加する
+			if existingPointSet, ok := pointSets[key]; ok {
 				existingPointSet.PointSetID = append(existingPointSet.PointSetID, value.PointSetID...)
 				existingPointSet.PointID = append(existingPointSet.PointID, value.PointID...)
-				pointSets[key] = existingPointSet
+				tempPointSet = existingPointSet
 			}
+			// keyが設定されていない場合にはデータを加工せず代入する
+			pointSets[key] = tempPointSet
 		}
 		// pointsにデータを追加
 		for key, values := range fetchOncePoints {
-			// pointsのkeyが設定されていない場合にはデータを代入する
-			if existingPoint, ok := points[key]; !ok {
-				points[key] = values
-				// pointsのkeyが既に設定されていた場合にはデータを上書きせず追加する
-			} else {
-				points[key] = append(existingPoint, values...)
+			tempValues := values
+			// pointsのkeyが設定されている場合は既存データに追加する
+			if existingPoint, ok := points[key]; ok {
+				tempValues = append(existingPoint, values...)
 			}
+			// pointsのkeyが設定されていない場合にはデータを加工せず代入する
+			points[key] = tempValues
 		}
 		
 		if newCursor == "" {
@@ -207,25 +207,16 @@ func processQueryRS(queryRS *model.QueryRS) (pointSets map[string](model.Process
 		// PointSetの数だけ処理を繰り返す
 		for _, ps := range queryRS.Transport.Body.PointSet {
 			proccessed := model.ProcessedPointSet{}
-			for _, id := range ps.PointSetId {
-				if id != nil {
-					proccessed.PointSetID = append(proccessed.PointSetID, *id)
-				}
-			}
-			for _, id := range ps.PointId {
-				if id != nil {
-					proccessed.PointID = append(proccessed.PointID, *id)
-				}
-			}
-			// pointSetsのkeyが設定されていない場合にはデータを代入する
-			if existingPointSet, ok := pointSets[ps.Id]; !ok {
-				pointSets[ps.Id] = proccessed
-				// pointSetsのkeyが既に設定されていた場合にはデータを上書きせず追加する
-			} else {
+			proccessed.PointSetID = ps.PointSetId
+			proccessed.PointID = ps.PointId
+
+			// pointSetsのkeyが既に設定されていた場合はデータを追加する
+			if existingPointSet, ok := pointSets[ps.Id]; ok {
 				proccessed.PointSetID = append(existingPointSet.PointSetID, proccessed.PointSetID...)
 				proccessed.PointID = append(existingPointSet.PointID, proccessed.PointID...)
-				pointSets[ps.Id] = proccessed
 			}
+			// pointSetsのkeyが設定されていない場合にはデータを加工せず代入する
+			pointSets[ps.Id] = proccessed
 		}
 	}
 
@@ -235,17 +226,13 @@ func processQueryRS(queryRS *model.QueryRS) (pointSets map[string](model.Process
 		points = make(map[string]([]model.Value))
 		// Pointの数だけ処理を繰り返す
 		for _, p := range queryRS.Transport.Body.Point {
-			values := make([]model.Value, len(p.Value))
-			for i, v := range p.Value {
-				values[i] = *v
+			tempValues := p.Value
+			// pointsのkeyが設定されていた場合はデータを追加する
+			if existingValues, ok := points[p.Id]; ok {
+				tempValues = append(existingValues, p.Value...)
 			}
-			// pointsのkeyが設定されていない場合にはデータを代入する
-			if existingValues, ok := points[p.Id]; !ok {
-				points[p.Id] = values
-				// pointsのkeyが既に設定されていた場合にはデータを上書きせず追加する
-			} else {
-				points[p.Id] = append(existingValues, values...)
-			}
+			// pointsのkeyが設定されていない場合にはデータを加工せず代入する
+			points[p.Id] = tempValues
 		}
 	}
 
