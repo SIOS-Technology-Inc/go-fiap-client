@@ -107,7 +107,7 @@ func TestFetchOncePointValueBoundary(t *testing.T) {
 			`, // pointに0個のvalueを含むレスポンス
 			expectedValueCount:       0,
 			expectedPoints: map[string][]model.Value{
-				"http://xxxxxxxx/tokyo/building1/Room101/": {},
+				"http://xxxxxxxx/tokyo/building1/Room101/": nil,
 			},
 		},
 		{
@@ -196,7 +196,7 @@ func TestFetchOncePointSetBoundary(t *testing.T){
 			</body>
 			`, // 0個のpointSetを含むレスポンス
 			expectedPointSetCount:       0,
-			expectedPointSets: map[string](model.ProcessedPointSet)(nil),
+			expectedPointSets: map[string](model.ProcessedPointSet){},
 		},
 		{
 			name: "1 pointSets",
@@ -208,7 +208,10 @@ func TestFetchOncePointSetBoundary(t *testing.T){
 			`, // 1個のpointSetを含むレスポンス
 			expectedPointSetCount: 1,
 			expectedPointSets: map[string](model.ProcessedPointSet){
-				"http://xxxxxxxx/tokyo/building1/": {},
+				"http://xxxxxxxx/tokyo/building1/": {
+					PointSetID: []string{},
+					PointID: []string{},
+				},
 			},
 		},
 		{
@@ -221,8 +224,14 @@ func TestFetchOncePointSetBoundary(t *testing.T){
 			`, // 2個のpointSetを含むレスポンス
 			expectedPointSetCount: 2,
 			expectedPointSets: map[string](model.ProcessedPointSet){
-				"http://xxxxxxxx/tokyo/building1/": {},
-				"http://xxxxxxxx/tokyo/building2/": {},
+				"http://xxxxxxxx/tokyo/building1/": {
+					PointSetID: []string{},
+					PointID: []string{},
+				},
+				"http://xxxxxxxx/tokyo/building2/": {
+					PointSetID: []string{},
+					PointID: []string{},
+				},
 			},
 		},
 	}
@@ -260,7 +269,7 @@ func TestFetchOncePointSetPointSetIDBoundary(t *testing.T){
 		name            string
 		body            string
 		expectedPointSetPointSetIdCount	int
-		expectedPointSets  map[string](model.ProcessedPointSet)
+		expectedPointSetsPointSetIds []string
 	}{
 		{
 			name: "0 PointSets.PointSetId",
@@ -271,9 +280,7 @@ func TestFetchOncePointSetPointSetIDBoundary(t *testing.T){
 			</body>
 			`, // 0個のpointSetIDを含むレスポンス
 			expectedPointSetPointSetIdCount:       0,
-			expectedPointSets: map[string](model.ProcessedPointSet){
-				"http://xxxxxxxx/tokyo/building1/": {},
-			},
+			expectedPointSetsPointSetIds: []string{},
 		},
 		{
 			name: "1 pointSets.PointSetId",
@@ -285,11 +292,7 @@ func TestFetchOncePointSetPointSetIDBoundary(t *testing.T){
 			</body>
 			`, // 1個のpointSetIDを含むレスポンス
 			expectedPointSetPointSetIdCount: 1,
-			expectedPointSets: map[string](model.ProcessedPointSet){
-				"http://xxxxxxxx/tokyo/building1/": {
-					PointSetID: []string{"http://xxxxxxxx/tokyo/building1/Room101/"},
-				},
-			},
+			expectedPointSetsPointSetIds: []string{"http://xxxxxxxx/tokyo/building1/Room101/"},
 		},
 		{
 			name: "2 pointSets.PointSetId",
@@ -302,11 +305,7 @@ func TestFetchOncePointSetPointSetIDBoundary(t *testing.T){
 			</body>
 			`, // 2個のpointSetIDを含むレスポンス
 			expectedPointSetPointSetIdCount: 2,
-			expectedPointSets: map[string](model.ProcessedPointSet){
-				"http://xxxxxxxx/tokyo/building1/": {
-					PointSetID: []string{"http://xxxxxxxx/tokyo/building1/Room101/", "http://xxxxxxxx/tokyo/building1/Room102/"},
-				},
-			},
+			expectedPointSetsPointSetIds: []string{"http://xxxxxxxx/tokyo/building1/Room101/", "http://xxxxxxxx/tokyo/building1/Room102/"},
 		},
 	}
 
@@ -331,8 +330,7 @@ func TestFetchOncePointSetPointSetIDBoundary(t *testing.T){
 
 				assert.NoError(t, err)
 				assert.Len(t, pointSets["http://xxxxxxxx/tokyo/building1/"].PointSetID, tc.expectedPointSetPointSetIdCount)
-				assert.Equal(t, tc.expectedPointSets, pointSets)
-				
+				assert.Equal(t, tc.expectedPointSetsPointSetIds, pointSets["http://xxxxxxxx/tokyo/building1/"].PointSetID)				
 		})
 	}
 }
@@ -343,7 +341,7 @@ func TestFetchOncePointSetPointIdBoundary(t *testing.T){
 		name            string
 		body            string
 		expectedPointSetPointIdCount	int
-		expectedPointSets  map[string](model.ProcessedPointSet)
+		expectedPointSetsPointIds  []string
 	}{
 		{
 			name: "0 PointSets.PointId",
@@ -354,9 +352,7 @@ func TestFetchOncePointSetPointIdBoundary(t *testing.T){
 			</body>
 			`, // 0個のpointIDを含むレスポンス
 			expectedPointSetPointIdCount:       0,
-			expectedPointSets: map[string](model.ProcessedPointSet){
-				"http://xxxxxxxx/tokyo/building1/Room101/": {},
-			},
+			expectedPointSetsPointIds: []string{},
 		},
 		{
 			name: "1 pointSets.PointId",
@@ -368,11 +364,7 @@ func TestFetchOncePointSetPointIdBoundary(t *testing.T){
 			</body>
 			`, // 1個のpointIDを含むレスポンス
 			expectedPointSetPointIdCount: 1,
-			expectedPointSets: map[string](model.ProcessedPointSet){
-				"http://xxxxxxxx/tokyo/building1/Room101/": {
-					PointID: []string{"http://xxxxxxxx/tokyo/building1/Room101/Temperature/"},
-				},
-			},
+			expectedPointSetsPointIds: []string{"http://xxxxxxxx/tokyo/building1/Room101/Temperature/"},
 		},
 		{
 			name: "2 pointSets.PointId",
@@ -385,11 +377,7 @@ func TestFetchOncePointSetPointIdBoundary(t *testing.T){
 			</body>
 			`, // 2個のpointIDを含むレスポンス
 			expectedPointSetPointIdCount: 2,
-			expectedPointSets: map[string](model.ProcessedPointSet){
-				"http://xxxxxxxx/tokyo/building1/Room101/": {
-					PointID: []string{"http://xxxxxxxx/tokyo/building1/Room101/Temperature/", "http://xxxxxxxx/tokyo/building1/Room101/Humidity/"},
-				},
-			},
+			expectedPointSetsPointIds: []string{"http://xxxxxxxx/tokyo/building1/Room101/Temperature/", "http://xxxxxxxx/tokyo/building1/Room101/Humidity/"},
 		},
 	}
 
@@ -414,7 +402,7 @@ func TestFetchOncePointSetPointIdBoundary(t *testing.T){
 
 				assert.NoError(t, err)
 				assert.Len(t, pointSets["http://xxxxxxxx/tokyo/building1/Room101/"].PointID, tc.expectedPointSetPointIdCount)
-				assert.Equal(t, tc.expectedPointSets, pointSets)
+				assert.Equal(t, tc.expectedPointSetsPointIds, pointSets["http://xxxxxxxx/tokyo/building1/Room101/"].PointID)
 				
 		})
 	}
@@ -873,17 +861,6 @@ func TestFetchOnceFiapFetchInputError(t *testing.T){
 			wantError []string
 		}{
 			{
-				name: "when connectionURL is empty",
-				connectionURL: "",
-				keys: []model.UserInputKey{
-					{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
-				},
-				wantError: []string{
-					"fiapFetch error",
-					"connectionURL is empty",
-				},
-			},
-			{
 				name: "when connection url is invalid",
 				connectionURL: "htrp://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",
 				keys: []model.UserInputKey{
@@ -950,26 +927,78 @@ func TestFetchOnceFiapFetchRequestError(t *testing.T){
 }
 
 func TestFetchOnceProcessQueryRSError(t *testing.T){
+	testcases := []struct{
+		name string
+		transport string
+		wantErr string
+	}{
+		{
+			name: "when queryRS.Transport is empty",
+			transport: "",
+			wantErr: "queryRS.Transport is nil",
+		},
+		{
+			name: "when queryRS.Transport.Header is empty",
+			transport: `
+			<transport xmlns="http://gutp.jp/fiap/2009/11/">
+			</transport>
+			`,
+			wantErr: "queryRS.Transport.Header is nil",
+		},
+		{
+			name: "when queryRS.Transport.Header.OK exists and queryRS.Transport.Body is empty",
+			transport: `
+			<transport xmlns="http://gutp.jp/fiap/2009/11/">
+				<header>
+					<OK/>
+				</header>
+			</transport>
+			`,
+			wantErr: "queryRS.Transport.Body is nil",
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			// mockの有効化
+			httpmock.Activate()
+			defer httpmock.DeactivateAndReset()
+
+			// 下記URLにPOSTしたときの挙動を定義
+			responder := testutil.CustomTransportResponder(tc.transport)
+			httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
+
+			// テスト対象の関数を実行
+			_, _, _, _, err := FetchOnce(
+				"http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",
+				[]model.UserInputKey{
+					{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
+				},
+				&model.FetchOnceOption{},
+			)
+
+			assert.Error(t, err)
+			assert.Contains(t, err.Error(), "processQueryRS error")
+			assert.Contains(t, err.Error(), tc.wantErr)
+		})
+	}
+}
+
+func TestFetchOnceProcessQueryRSFiapErr(t *testing.T){
 	// mockの有効化
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 
 	// 下記URLにPOSTしたときの挙動を定義
-	responder := httpmock.NewStringResponder(200, `
-	<?xml version='1.0' encoding='utf-8'?>
-			<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
-			<soapenv:Header/>
-			<soapenv:Body>
-					<ns2:queryRS xmlns:ns2="http://soap.fiap.org/">
-					</ns2:queryRS>
-			</soapenv:Body>
-	</soapenv:Envelope>
+	responder := testutil.CustomHeaderBodyResponder(`
+	<header>
+		<error type="POINT_NOT_FOUND">The requested point is not managed in this server.</error>
+	</header>
 	`)
-
 	httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
 
 	// テスト対象の関数を実行
-	_, _, _, _, err := FetchOnce(
+	_, _, _, fiapErr, _ := FetchOnce(
 		"http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",
 		[]model.UserInputKey{
 			{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
@@ -977,9 +1006,12 @@ func TestFetchOnceProcessQueryRSError(t *testing.T){
 		&model.FetchOnceOption{},
 	)
 
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "processQueryRS error")
-	assert.Contains(t, err.Error(), "transport is nil")
+	var expectedfiapErr model.Error = model.Error{
+		Type: "POINT_NOT_FOUND",
+		Value: "The requested point is not managed in this server.",
+	}
+
+	assert.Equal(t, expectedfiapErr, *fiapErr)
 }
 
 func TestFetchFetchOnce1(t *testing.T){

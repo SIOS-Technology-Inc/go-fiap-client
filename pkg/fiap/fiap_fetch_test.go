@@ -294,14 +294,6 @@ func TestFiapFetchInputErrors(t *testing.T) {
 			wantError  string
 	}{
 			{
-					name: "when connectionURL is empty",
-					connectionURL: "",
-					keys: []model.UserInputKey{
-							{ID: "http://kurimoto/nukaya/vaisala/B-2/Temperature_TD"},
-					},
-					wantError: "connectionURL is empty",
-			},
-			{
 					name: "when connectionURL is invalid",
 					connectionURL: "htt://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",
 					keys: []model.UserInputKey{

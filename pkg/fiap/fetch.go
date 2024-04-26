@@ -180,19 +180,17 @@ func processQueryRS(queryRS *model.QueryRS) (pointSets map[string](model.Process
 	if queryRS.Transport.Header == nil {
 		err = errors.New("queryRS.Transport.Header is nil")
 		log.Printf("Error: %+v\n", err)
-		return nil, nil, "", nil, nil
+		return nil, nil, "", nil, err
 	}
-
 	if queryRS.Transport.Header.OK != nil &&
 		queryRS.Transport.Body == nil {
 		err = errors.New("queryRS.Transport.Body is nil")
 		log.Printf("Error: %+v\n", err)
-		return nil, nil, "", nil, nil
+		return nil, nil, "", nil, err
 	}
 
 	if queryRS.Transport.Header.Error != nil {
 		fiapErr = queryRS.Transport.Header.Error
-		log.Printf("Error: fiap error: %+v\n", fiapErr)
 		return nil, nil, "", fiapErr, nil
 	}
 
@@ -222,8 +220,6 @@ func processQueryRS(queryRS *model.QueryRS) (pointSets map[string](model.Process
 
 	// BodyにPointが返っていれば、それを処理する
 	if queryRS.Transport.Body.Point != nil {
-		// pointsを初期化
-		points = make(map[string]([]model.Value))
 		// Pointの数だけ処理を繰り返す
 		for _, p := range queryRS.Transport.Body.Point {
 			tempValues := p.Value
