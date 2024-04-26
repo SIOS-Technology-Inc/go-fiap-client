@@ -1006,12 +1006,12 @@ func TestFetchOnceProcessQueryRSFiapErr(t *testing.T){
 		&model.FetchOnceOption{},
 	)
 
-	var expectedfiapErr model.Error = model.Error{
+	expectedfiapErr := &model.Error{
 		Type: "POINT_NOT_FOUND",
 		Value: "The requested point is not managed in this server.",
 	}
 
-	assert.Equal(t, expectedfiapErr, *fiapErr)
+	assert.Equal(t, expectedfiapErr, fiapErr)
 }
 
 func TestFetchFetchOnce1(t *testing.T){
@@ -1600,7 +1600,7 @@ func TestFetchEmpty(t *testing.T){
 	assert.Equal(t, 0, len(points))
 }
 
-func TestFetchFetchOnceError1(t *testing.T){
+func TestFetchFetchOnce1Error(t *testing.T){
 	// mockの有効化
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
@@ -1620,7 +1620,7 @@ func TestFetchFetchOnceError1(t *testing.T){
 	assert.Contains(t, err.Error(), "client.Call error")
 }
 
-func TestFetchFetchOnceError2(t *testing.T){
+func TestFetchFetchOnce2Error(t *testing.T){
 	// httpmockの有効化
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
@@ -1669,6 +1669,122 @@ func TestFetchFetchOnceError2(t *testing.T){
 	assert.Contains(t, err.Error(), "FetchOnce error on loop iteration 2")
 	assert.Contains(t, err.Error(), "fiapFetch error")
 	assert.Contains(t, err.Error(), "client.Call error")
+}
+
+func TestFetchFetchOnce1fiapErr(t *testing.T){
+	// httpmockの有効化
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	// 下記URLにPOSTしたときの挙動を定義
+	responder := testutil.CustomHeaderBodyResponder(`
+	<header>
+		<error type="POINT_NOT_FOUND">The requested point is not managed in this server.</error>
+	</header>
+	`)
+	httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
+
+	// テスト対象の関数を実行
+	pointSets, points, fiapErr, err := Fetch("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", []model.UserInputKey{
+		{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
+	}, &model.FetchOption{})
+
+	expectedFiapErr := &model.Error{
+		Type: "POINT_NOT_FOUND",
+		Value:  "The requested point is not managed in this server.",
+	}
+	assert.NoError(t, err)
+	assert.Equal(t, expectedFiapErr, fiapErr)
+	assert.Equal(t, 0, len(pointSets))
+	assert.Equal(t, 0, len(points))
+}
+
+func TestFetchFetchOnce2FiapErr(t *testing.T){
+	// httpmockの有効化
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", 
+		func (req *http.Request) (*http.Response, error){
+			body, err := io.ReadAll(req.Body)
+			if err != nil {
+				return nil, err
+			}
+			if strings.Contains(string(body), "cursor") {
+				responseWithFiapErr := httpmock.NewStringResponse(200,`
+					<?xml version='1.0' encoding='utf-8'?>
+					<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+					<soapenv:Header/>
+					<soapenv:Body>
+						<ns2:queryRS xmlns:ns2="http://soap.fiap.org/">
+							<transport xmlns="http://gutp.jp/fiap/2009/11/">
+							<header>
+								<error type="POINT_NOT_FOUND">The requested point is not managed in this server.</error>
+							</header>
+							</transport>
+						</ns2:queryRS>
+					</soapenv:Body>
+					</soapenv:Envelope>
+				`)
+				return responseWithFiapErr, nil
+			} else {
+				responseWithCursor := httpmock.NewStringResponse(200, `
+				<?xml version='1.0' encoding='utf-8'?>
+				<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+				<soapenv:Header/>
+				<soapenv:Body>
+					<ns2:queryRS xmlns:ns2="http://soap.fiap.org/">
+						<transport xmlns="http://gutp.jp/fiap/2009/11/">
+							<header>
+							<OK/>
+								<query id="e3264a29-b4a6-41dd-a6bb-cbf57b76e571" type="storage" cursor="a93f7094-4fd1-8e9a-749c-08e222bb0afb">
+									<key id="xxxxxxxx/tokyo/building1/" attrName="time" select="maximum"/>
+								</query>
+							</header>
+							<body>
+								<point id="http://xxxxxxxx/tokyo/building1/Room101/">
+									<value time="2012-02-02T16:34:05.000+09:00">30</value>
+								</point>
+								<pointSet id="http://xxxxxxxx/tokyo/building2/">
+									<point id="http://xxxxxxxx/tokyo/building2/Temperature/" />
+									<pointSet id="http://xxxxxxxx/tokyo/building2/Room101/" />
+								</pointSet>
+							</body>
+							</transport>
+					</ns2:queryRS>
+				</soapenv:Body>
+				</soapenv:Envelope>
+				`)
+				return responseWithCursor, nil
+			}
+		},
+	)
+	// テスト対象の関数を実行
+	pointSets, points, fiapErr, err := Fetch("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", []model.UserInputKey{
+		{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
+	}, &model.FetchOption{})
+
+	expextedFiapErr := &model.Error{
+		Type: "POINT_NOT_FOUND",
+		Value:  "The requested point is not managed in this server.",
+	}
+
+	assert.NoError(t, err)
+	assert.Equal(t, expextedFiapErr, fiapErr)
+	assert.Equal(t, map[string]model.ProcessedPointSet{
+		"http://xxxxxxxx/tokyo/building2/": {
+			PointSetID: []string{"http://xxxxxxxx/tokyo/building2/Room101/"},
+			PointID:    []string{"http://xxxxxxxx/tokyo/building2/Temperature/"},
+		},
+	}, pointSets)
+	assert.Equal(t, map[string][]model.Value{
+		"http://xxxxxxxx/tokyo/building1/Room101/": {
+			{
+				Time:  time.Date(2012, 2, 2, 16, 34, 5, 0, time.FixedZone("", 9*60*60)),
+				Value: "30",
+			},
+		},
+	}, points)
 }
 
 func TestFetchByIdsWithKeyIdBoundary(t *testing.T){
