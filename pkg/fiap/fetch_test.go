@@ -76,7 +76,7 @@ func TestFetchOncePointBoundary(t *testing.T){
 			httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
 
 			// テスト対象の関数を実行
-			_, points, _, err := FetchOnce(
+			_, points, _, _, err := FetchOnce(
 					"http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",
 					[]model.UserInputKey{
 							{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
@@ -166,7 +166,7 @@ func TestFetchOncePointValueBoundary(t *testing.T) {
 					httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
 
 					// テスト対象の関数を実行
-					_, points, _, err := FetchOnce(
+					_, points, _, _, err := FetchOnce(
 							"http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",
 							[]model.UserInputKey{
 									{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
@@ -238,7 +238,7 @@ func TestFetchOncePointSetBoundary(t *testing.T){
 				httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
 
 				// テスト対象の関数を実行
-				pointSets, _, _, err := FetchOnce(
+				pointSets, _, _, _, err := FetchOnce(
 						"http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",
 						[]model.UserInputKey{
 								{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
@@ -321,7 +321,7 @@ func TestFetchOncePointSetPointSetIDBoundary(t *testing.T){
 				httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
 
 				// テスト対象の関数を実行
-				pointSets, _, _, err := FetchOnce(
+				pointSets, _, _, _, err := FetchOnce(
 						"http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",
 						[]model.UserInputKey{
 								{ID: "http://xxxxxxxx/tokyo/building1/"},
@@ -404,7 +404,7 @@ func TestFetchOncePointSetPointIdBoundary(t *testing.T){
 				httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
 
 				// テスト対象の関数を実行
-				pointSets, _, _, err := FetchOnce(
+				pointSets, _, _, _, err := FetchOnce(
 						"http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",
 						[]model.UserInputKey{
 								{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
@@ -487,7 +487,7 @@ func TestFetchOnceBoundaryCombination(t *testing.T){
 	httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
 
 	// テスト対象の関数を実行
-	pointSets, points, _, err := FetchOnce(
+	pointSets, points, _, _, err := FetchOnce(
 		"http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",
 		[]model.UserInputKey{
 			{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
@@ -514,7 +514,7 @@ func TestFetchOnceBodyIsEmpty(t *testing.T){
 	httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
 
 	// テスト対象の関数を実行
-	pointSets, points, _, err := FetchOnce(
+	pointSets, points, _, _, err := FetchOnce(
 		"http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",
 		[]model.UserInputKey{
 			{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
@@ -641,7 +641,7 @@ func TestFetchOnceWithRepeatedPointSetId(t *testing.T) {
 					httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
 
 					// テスト対象の関数を実行
-					pointSets, _, _, err := FetchOnce(
+					pointSets, _, _, _, err := FetchOnce(
 							"http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",
 							[]model.UserInputKey{
 									{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
@@ -783,7 +783,7 @@ func TestFetchOnceWithRepeatedPointId(t *testing.T) {
 					httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
 
 					// テスト対象の関数を実行
-					_, points, _, err := FetchOnce(
+					_, points, _, _, err := FetchOnce(
 							"http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",
 							[]model.UserInputKey{
 									{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
@@ -851,7 +851,7 @@ func TestFetchOnceCursor(t *testing.T) {
 					httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
 
 					// テスト対象の関数を実行
-					_, _, cursor, err := FetchOnce(
+					_, _, cursor, _, err := FetchOnce(
 							"http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",
 							[]model.UserInputKey{
 									{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
@@ -918,7 +918,7 @@ func TestFetchOnceFiapFetchInputError(t *testing.T){
 
 		for _, tc := range testcases {
 			t.Run(tc.name, func(t *testing.T) {
-				_, _, _, err := FetchOnce(tc.connectionURL, tc.keys, &model.FetchOnceOption{})
+				_, _, _, _, err := FetchOnce(tc.connectionURL, tc.keys, &model.FetchOnceOption{})
 				for _, want := range tc.wantError {
 					assert.Contains(t, err.Error(), want)
 				}
@@ -936,7 +936,7 @@ func TestFetchOnceFiapFetchRequestError(t *testing.T){
 		httpmock.NewErrorResponder(errors.New("mocked error")))
 
 	// テスト対象の関数を実行
-	_, _, _, err := FetchOnce(
+	_, _, _, _, err := FetchOnce(
 		"http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",
 		[]model.UserInputKey{
 			{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
@@ -969,7 +969,7 @@ func TestFetchOnceProcessQueryRSError(t *testing.T){
 	httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
 
 	// テスト対象の関数を実行
-	_, _, _, err := FetchOnce(
+	_, _, _, _, err := FetchOnce(
 		"http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",
 		[]model.UserInputKey{
 			{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
@@ -1009,7 +1009,7 @@ func TestFetchFetchOnce1(t *testing.T){
 	httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
 
 	// テスト対象の関数を実行
-	pointSets, points, err := Fetch("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", []model.UserInputKey{
+	pointSets, points, _, err := Fetch("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", []model.UserInputKey{
 		{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
 	}, &model.FetchOption{})
 
@@ -1103,7 +1103,7 @@ func TestFetchFetchOnce2(t *testing.T){
 		},
 	)
 	// テスト対象の関数を実行
-	pointSets, points, err := Fetch("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", []model.UserInputKey{
+	pointSets, points, _, err := Fetch("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", []model.UserInputKey{
 		{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
 	}, &model.FetchOption{})
 
@@ -1203,7 +1203,7 @@ func TestFetchFetchOncePointSetsBoundary(t *testing.T){
 			httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
 
 			// テスト対象の関数を実行
-			pointSets, _, err := Fetch("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", []model.UserInputKey{
+			pointSets, _, _, err := Fetch("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", []model.UserInputKey{
 				{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
 			}, &model.FetchOption{})
 			assert.NoError(t, err)
@@ -1289,7 +1289,7 @@ func TestFetchFetchOncePointsBoundary(t *testing.T){
 			httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
 
 			// テスト対象の関数を実行
-			_, points, err := Fetch("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", []model.UserInputKey{
+			_, points, _, err := Fetch("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", []model.UserInputKey{
 				{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
 			}, &model.FetchOption{})
 			assert.NoError(t, err)
@@ -1321,7 +1321,7 @@ func TestFetchNotRepeatedPointSetId(t *testing.T){
 	httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
 
 	// テスト対象の関数を実行
-	pointSets, _, err := Fetch("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", []model.UserInputKey{
+	pointSets, _, _, err := Fetch("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", []model.UserInputKey{
 		{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
 	}, &model.FetchOption{})
 
@@ -1401,7 +1401,7 @@ func TestFetchRepeatedPointSetId(t *testing.T){
 		},
 	)
 	// テスト対象の関数を実行
-	pointSets, _, err := Fetch("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", []model.UserInputKey{
+	pointSets, _, _, err := Fetch("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", []model.UserInputKey{
 		{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
 	}, &model.FetchOption{})
 
@@ -1436,7 +1436,7 @@ func TestFetchNotRepeatedPointId(t *testing.T){
 	httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
 
 	// テスト対象の関数を実行
-	_, points, err := Fetch("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", []model.UserInputKey{
+	_, points, _, err := Fetch("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", []model.UserInputKey{
 		{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
 	}, &model.FetchOption{})
 
@@ -1517,7 +1517,7 @@ func TestFetchRepeatedPointId(t *testing.T){
 		},
 	)
 	// テスト対象の関数を実行
-	_, points, err := Fetch("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", []model.UserInputKey{
+	_, points, _, err := Fetch("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", []model.UserInputKey{
 		{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
 	}, &model.FetchOption{})
 
@@ -1559,7 +1559,7 @@ func TestFetchEmpty(t *testing.T){
 	httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
 
 	// テスト対象の関数を実行
-	pointSets, points, err := Fetch("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", []model.UserInputKey{
+	pointSets, points, _, err := Fetch("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", []model.UserInputKey{
 		{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
 	}, &model.FetchOption{})
 
@@ -1578,7 +1578,7 @@ func TestFetchFetchOnceError1(t *testing.T){
 		httpmock.NewErrorResponder(errors.New("mocked error")))
 
 	// テスト対象の関数を実行
-	_, _, err := Fetch("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", []model.UserInputKey{
+	_, _, _, err := Fetch("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", []model.UserInputKey{
 		{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
 	}, &model.FetchOption{})
 
@@ -1630,7 +1630,7 @@ func TestFetchFetchOnceError2(t *testing.T){
 		},
 	)
 	// テスト対象の関数を実行
-	_, _, err := Fetch("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", []model.UserInputKey{
+	_, _, _, err := Fetch("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", []model.UserInputKey{
 		{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
 	}, &model.FetchOption{})
 	assert.Error(t, err)
@@ -1713,7 +1713,7 @@ func TestFetchByIdsWithKeyIdBoundary(t *testing.T){
 					responder,
 			)
 			// テスト対象の関数を実行
-			pointSets, points, _ := FetchByIdsWithKey("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", model.UserInputKeyNoID{}, tc.ids)
+			pointSets, points, _, _ := FetchByIdsWithKey("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", model.UserInputKeyNoID{}, tc.ids)
 			assert.Equal(t, expectedPointSets, pointSets)
 			assert.Equal(t, expectedPoints, points)
 		})
@@ -1730,7 +1730,7 @@ func TestFetchByIdsWithKeyMissingId(t *testing.T){
 		httpmock.NewErrorResponder(errors.New("mocked error")))
 
 	// テスト対象の関数を実行
-	_, _, err := FetchByIdsWithKey("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", model.UserInputKeyNoID{
+	_, _, _, err := FetchByIdsWithKey("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", model.UserInputKeyNoID{
 		Lteq: testutil.TimeToTimep(time.Date(2021, 1, 1, 0, 0, 0, 0, time.FixedZone("Asia/Tokyo", 9*60*60))),
 		Gteq: testutil.TimeToTimep(time.Date(2021, 1, 1, 0, 0, 0, 0, time.FixedZone("Asia/Tokyo", 9*60*60))),
 	}, "http://xxxxxxxx/tokyo/building1/")
@@ -1798,7 +1798,7 @@ func TestFetchLatestCheckHttpReqAndSuccess(t *testing.T){
 			responder,
 	)
 	// テスト対象の関数を実行
-	pointSets, points, _ := FetchLatest("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",
+	pointSets, points,_, _ := FetchLatest("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",
 	fromDate,
 	toDate,
 	ids)
@@ -1816,7 +1816,7 @@ func TestFetchLatestFetchByIdsWithKeyError(t *testing.T){
 	httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
 
 	// テスト対象の関数を実行
-	_, _, err := FetchLatest("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",nil,nil)
+	_, _, _, err := FetchLatest("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",nil,nil)
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "FetchByIdsWithKey error")
@@ -1881,7 +1881,7 @@ func TestFetchOldestCheckHttpReqAndSuccess(t *testing.T){
 			responder,
 	)
 	// テスト対象の関数を実行
-	pointSets, points, _ := FetchOldest("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",
+	pointSets, points, _, _ := FetchOldest("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",
 	fromDate,
 	toDate,
 	ids)
@@ -1899,7 +1899,7 @@ func TestFetchOldestFetchByIdsWithKeyError(t *testing.T){
 	httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
 
 	// テスト対象の関数を実行
-	_, _, err := FetchOldest("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",nil,nil)
+	_, _, _, err := FetchOldest("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",nil,nil)
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "FetchByIdsWithKey error")
@@ -1964,7 +1964,7 @@ func TestFetchDateRangeCheckHttpReqAndSuccess(t *testing.T){
 			responder,
 	)
 	// テスト対象の関数を実行
-	pointSets, points, _ := FetchOldest("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",
+	pointSets, points,_, _ := FetchOldest("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",
 	fromDate,
 	toDate,
 	ids)
@@ -1982,7 +1982,7 @@ func TestFetchDateRangeFetchByIdsWithKeyError(t *testing.T){
 	httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
 
 	// テスト対象の関数を実行
-	_, _, err := FetchDateRange("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",nil,nil)
+	_, _, _, err := FetchDateRange("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",nil,nil)
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "FetchByIdsWithKey error")
