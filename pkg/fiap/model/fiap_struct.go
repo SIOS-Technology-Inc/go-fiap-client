@@ -49,6 +49,8 @@ type Query struct {
 
 type Error struct {
 	Type string `xml:"type,attr,omitempty" json:"type,omitempty"`
+
+	Value string `xml:",chardata" json:"value"`
 }
 
 type OK struct {
@@ -69,15 +71,15 @@ type Value struct {
 }
 
 type Point struct {
-	Value []*Value `xml:"value,omitempty" json:"value,omitempty"`
+	Value []Value `xml:"value,omitempty" json:"value,omitempty"`
 
 	Id string `xml:"id,attr,omitempty" json:"id,omitempty"`
 }
 
 type PointSet struct {
-	PointSetId []*string `json:"point_set_id,omitempty"`
+	PointSetId []string `json:"point_set_id,omitempty"`
 
-	PointId []*string `json:"point_id,omitempty"`
+	PointId []string `json:"point_id,omitempty"`
 
 	Id string `json:"id,omitempty"`
 }
@@ -91,22 +93,20 @@ func (p *PointSet) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	p.Id = aux.Id
 
 	// pointSetIdとpointIdを初期化
-	p.PointSetId = make([]*string, 0)
-	p.PointId = make([]*string, 0)
+	p.PointSetId = make([]string, 0)
+	p.PointId = make([]string, 0)
 
 	//pointSetがnilでない場合、pointSetIDとpointIDをstringの配列として格納
 	if aux.PointSet != nil {
 		// 受け取ったポイントセットをループさせる
 		for _, pointSet := range aux.PointSet {
-			s := pointSet.Id
-			p.PointSetId = append(p.PointSetId, &s)
+			p.PointSetId = append(p.PointSetId, pointSet.Id)
 		}
 	}
 	if aux.Point != nil {
 		// 受け取ったポイントをループさせる
 		for _, point := range aux.Point {
-			s := point.Id
-			p.PointId = append(p.PointId, &s)
+			p.PointId = append(p.PointId, point.Id)
 		}
 	}
 	return nil
