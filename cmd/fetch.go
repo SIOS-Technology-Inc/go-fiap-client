@@ -72,7 +72,7 @@ func newFetchCmd(out io.Writer, errOut io.Writer) *cobra.Command {
 			if len(args) < 2 {
 				argumentErrors = append(argumentErrors, errors.New("too few arguments"))
 			} else if len(args) > 2 {
-				argumentErrors = append(argumentErrors, errors.New("too few arguments"))
+				argumentErrors = append(argumentErrors, errors.New("too many arguments"))
 			}
 
 			if len(argumentErrors) > 0 {
