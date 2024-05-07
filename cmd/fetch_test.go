@@ -19,6 +19,7 @@ var (
 	originalFetchOldest    = fetchLatest
 	originalFetchDateRange = fetchDateRange
 	originalCreateFile     = createFile
+	originalMarshalJSON    = marshalJSON
 	originalArgs           = os.Args
 
 	mockFailLatest, mockFailOldest, mockFailDateRange        bool
@@ -124,6 +125,10 @@ func (f *mockFile) Close() error {
 		f.closed = true
 		return nil
 	}
+}
+
+func marshalJSONAlwayseFailed(v any) ([]byte, error) {
+	return nil, errors.New("test json marshal error")
 }
 
 func TestFetchCommandRun(t *testing.T) {
@@ -1377,19 +1382,272 @@ too few arguments
 				}
 			})
 		})
-		/* TODO Not Implemented
 		t.Run("FileWrite", func(t *testing.T) {
-			fmt.Println(`"` + actualErrOut.String() + `"`)
+			mockFailLatest, mockFailOldest, mockFailDateRange = false, true, true
+			mockFailCreateFile, mockFailWriteFile, mockFailCloseFile = false, true, false
+			mockResultPointSet = map[string]model.ProcessedPointSet{
+				"test_id": {
+					PointSetID: []string{"test_id_1", "test_id_2", "test_id_3"},
+					PointID:    []string{"test_id_4", "test_id_5"},
+				},
+			}
+			mockResultPoint = map[string]([]model.Value){}
+			mockResultFiapError = nil
+
+			os.Args = []string{"go-fiap-client", "fetch", "-o", "./test/file.ext", "http://test.url", "test_id"}
+			expectedOut := ""
+			expectedFileOut := ""
+			expectedErrOut := `Error: failed to write file './test/file.ext': test file write error
+`
+			expectedError := "failed to write file './test/file.ext'"
+
+			resetActualValues()
+			if err := newRootCmd(actualOut, actualErrOut).Execute(); err == nil {
+				t.Error("expected to fail command but succeed")
+			} else if !strings.Contains(err.Error(), expectedError) {
+				t.Error("expected file write error but not")
+			}
+			if actualOut.String() != expectedOut {
+				t.Error("assertion error of stdout")
+			}
+			if actualErrOut.String() != expectedErrOut {
+				t.Error("assertion error of stderr")
+			}
+			if actualArguments.connectionURL != "http://test.url" {
+				t.Error("assertion error of url")
+			}
+			if actualArguments.fromDate != nil {
+				t.Error("assertion error of from date")
+			}
+			if actualArguments.untilDate != nil {
+				t.Error("assertion error of until date")
+			}
+			if actualArguments.ids == nil {
+				t.Error("assertion error of id")
+			} else {
+				if len(actualArguments.ids) != 1 {
+					t.Error("assertion error of id")
+				} else if actualArguments.ids[0] != "test_id" {
+					t.Error("assertion error of id")
+				}
+			}
+			if !mockFileInstance.opened {
+				t.Error("file not opened")
+			}
+			if mockFileInstance.fileName != "./test/file.ext" {
+				t.Error("assertion error of opened file name")
+			}
+			if mockFileInstance.builder.String() != expectedFileOut {
+				t.Error("assertion error of file output")
+			}
+			if !mockFileInstance.closed {
+				t.Error("file not closed")
+			}
 		})
-		t.Run("FileClose", func(t *testing.T) {})
-		t.Run("FormatToJson", func(t *testing.T) {})
-		t.Run("Multiple", func(t *testing.T) {})
-		*/
+		t.Run("FileClose", func(t *testing.T) {
+			mockFailLatest, mockFailOldest, mockFailDateRange = false, true, true
+			mockFailCreateFile, mockFailWriteFile, mockFailCloseFile = false, false, true
+			mockResultPointSet = map[string]model.ProcessedPointSet{
+				"test_id": {
+					PointSetID: []string{"test_id_1", "test_id_2", "test_id_3"},
+					PointID:    []string{"test_id_4", "test_id_5"},
+				},
+			}
+			mockResultPoint = map[string]([]model.Value){}
+			mockResultFiapError = nil
+
+			os.Args = []string{"go-fiap-client", "fetch", "-o", "./test/file.ext", "http://test.url", "test_id"}
+			expectedOut := ""
+			expectedFileOut := `{"point_sets":{"test_id":{"point_set_id":["test_id_1","test_id_2","test_id_3"],"point_id":["test_id_4","test_id_5"]}}}`
+			expectedErrOut := `Error: failed to close file './test/file.ext': test file close error
+`
+			expectedError := "failed to close file './test/file.ext'"
+
+			resetActualValues()
+			if err := newRootCmd(actualOut, actualErrOut).Execute(); err == nil {
+				t.Error("expected to fail command but succeed")
+			} else if !strings.Contains(err.Error(), expectedError) {
+				t.Error("expected file close error but not")
+			}
+			if actualOut.String() != expectedOut {
+				t.Error("assertion error of stdout")
+			}
+			if actualErrOut.String() != expectedErrOut {
+				t.Error("assertion error of stderr")
+			}
+			if actualArguments.connectionURL != "http://test.url" {
+				t.Error("assertion error of url")
+			}
+			if actualArguments.fromDate != nil {
+				t.Error("assertion error of from date")
+			}
+			if actualArguments.untilDate != nil {
+				t.Error("assertion error of until date")
+			}
+			if actualArguments.ids == nil {
+				t.Error("assertion error of id")
+			} else {
+				if len(actualArguments.ids) != 1 {
+					t.Error("assertion error of id")
+				} else if actualArguments.ids[0] != "test_id" {
+					t.Error("assertion error of id")
+				}
+			}
+			if !mockFileInstance.opened {
+				t.Error("file not opened")
+			}
+			if mockFileInstance.fileName != "./test/file.ext" {
+				t.Error("assertion error of opened file name")
+			}
+			if mockFileInstance.builder.String() != expectedFileOut {
+				t.Error("assertion error of file output")
+			}
+			if mockFileInstance.closed {
+				t.Error("expected to fail close file but succeed")
+			}
+		})
+		t.Run("FormatToJson", func(t *testing.T) {
+			marshalJSON = marshalJSONAlwayseFailed
+
+			mockFailLatest, mockFailOldest, mockFailDateRange = false, true, true
+			mockFailCreateFile, mockFailWriteFile, mockFailCloseFile = false, false, false
+			mockResultPointSet = map[string]model.ProcessedPointSet{
+				"test_id": {
+					PointSetID: []string{"test_id_1", "test_id_2", "test_id_3"},
+					PointID:    []string{"test_id_4", "test_id_5"},
+				},
+			}
+			mockResultPoint = map[string]([]model.Value){}
+			mockResultFiapError = nil
+
+			os.Args = []string{"go-fiap-client", "fetch", "-o", "./test/file.ext", "http://test.url", "test_id"}
+			expectedOut := ""
+			expectedFileOut := ""
+			expectedErrOut := `Error: failed to format output to json: test json marshal error
+`
+			expectedError := "failed to format output to json"
+
+			resetActualValues()
+			if err := newRootCmd(actualOut, actualErrOut).Execute(); err == nil {
+				t.Error("expected to fail command but succeed")
+			} else if !strings.Contains(err.Error(), expectedError) {
+				t.Error("expected json format error but not")
+			}
+			if actualOut.String() != expectedOut {
+				t.Error("assertion error of stdout")
+			}
+			if actualErrOut.String() != expectedErrOut {
+				t.Error("assertion error of stderr")
+			}
+			if actualArguments.connectionURL != "http://test.url" {
+				t.Error("assertion error of url")
+			}
+			if actualArguments.fromDate != nil {
+				t.Error("assertion error of from date")
+			}
+			if actualArguments.untilDate != nil {
+				t.Error("assertion error of until date")
+			}
+			if actualArguments.ids == nil {
+				t.Error("assertion error of id")
+			} else {
+				if len(actualArguments.ids) != 1 {
+					t.Error("assertion error of id")
+				} else if actualArguments.ids[0] != "test_id" {
+					t.Error("assertion error of id")
+				}
+			}
+			if !mockFileInstance.opened {
+				t.Error("file not opened")
+			}
+			if mockFileInstance.fileName != "./test/file.ext" {
+				t.Error("assertion error of opened file name")
+			}
+			if mockFileInstance.builder.String() != expectedFileOut {
+				t.Error("assertion error of file output")
+			}
+			if !mockFileInstance.closed {
+				t.Error("file not closed")
+			}
+
+			marshalJSON = originalMarshalJSON
+		})
+		t.Run("Multiple", func(t *testing.T) {
+			mockFailLatest, mockFailOldest, mockFailDateRange = false, true, true
+			mockFailCreateFile, mockFailWriteFile, mockFailCloseFile = false, true, true
+			mockResultPointSet = map[string]model.ProcessedPointSet{
+				"test_id": {
+					PointSetID: []string{"test_id_1", "test_id_2", "test_id_3"},
+					PointID:    []string{"test_id_4", "test_id_5"},
+				},
+			}
+			mockResultPoint = map[string]([]model.Value){}
+			mockResultFiapError = &model.Error{Type: "test_type", Value: "test_value"}
+
+			os.Args = []string{"go-fiap-client", "fetch", "-o", "./test/file.ext", "http://test.url", "test_id"}
+			expectedOut := ""
+			expectedFileOut := ""
+			expectedErrOut := `Error: fiap error: type test_type, value test_value
+failed to write file './test/file.ext': test file write error
+failed to close file './test/file.ext': test file close error
+`
+			expectedFiapError := "fiap error: type test_type, value test_value"
+			expectedFileWriteError := "failed to write file './test/file.ext'"
+			expectedFileCloseError := "failed to close file './test/file.ext'"
+
+			resetActualValues()
+			if err := newRootCmd(actualOut, actualErrOut).Execute(); err == nil {
+				t.Error("expected to fail command but succeed")
+			} else if !strings.Contains(err.Error(), expectedFiapError) {
+				t.Error("expected fiap error but not")
+			} else if !strings.Contains(err.Error(), expectedFileWriteError) {
+				t.Error("expected file write error but not")
+			} else if !strings.Contains(err.Error(), expectedFileCloseError) {
+				t.Error("expected file close error but not")
+			}
+			if actualOut.String() != expectedOut {
+				t.Error("assertion error of stdout")
+			}
+			if actualErrOut.String() != expectedErrOut {
+				t.Error("assertion error of stderr")
+			}
+			if actualArguments.connectionURL != "http://test.url" {
+				t.Error("assertion error of url")
+			}
+			if actualArguments.fromDate != nil {
+				t.Error("assertion error of from date")
+			}
+			if actualArguments.untilDate != nil {
+				t.Error("assertion error of until date")
+			}
+			if actualArguments.ids == nil {
+				t.Error("assertion error of id")
+			} else {
+				if len(actualArguments.ids) != 1 {
+					t.Error("assertion error of id")
+				} else if actualArguments.ids[0] != "test_id" {
+					t.Error("assertion error of id")
+				}
+			}
+			if !mockFileInstance.opened {
+				t.Error("file not opened")
+			}
+			if mockFileInstance.fileName != "./test/file.ext" {
+				t.Error("assertion error of opened file name")
+			}
+			if mockFileInstance.builder.String() != expectedFileOut {
+				t.Error("assertion error of file output")
+			}
+			if mockFileInstance.closed {
+				t.Error("expected to fail close file but succeed")
+			}
+		})
 	})
 
 	fetchLatest = originalFetchLatest
 	fetchOldest = originalFetchOldest
 	fetchDateRange = originalFetchDateRange
 	createFile = originalCreateFile
+	marshalJSON = originalMarshalJSON
 	os.Args = originalArgs
 }
