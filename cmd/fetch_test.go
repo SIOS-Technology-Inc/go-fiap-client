@@ -118,7 +118,7 @@ func (f *mockFile) Write(p []byte) (int, error) {
 }
 
 func (f *mockFile) Close() error {
-	if mockFailWriteFile {
+	if mockFailCloseFile {
 		return errors.New("test file close error")
 	} else {
 		f.closed = true
@@ -136,7 +136,7 @@ func TestFetchCommandRun(t *testing.T) {
 	createFile = mockCreateFile
 
 	t.Run("Normal", func(t *testing.T) {
-		mockResultPointSet = make(map[string](model.ProcessedPointSet), 0)
+		mockResultPointSet = map[string](model.ProcessedPointSet){}
 		mockResultPoint = map[string]([]model.Value){
 			"test_id": []model.Value{
 				{Time: time.Date(2004, 4, 30, 12, 15, 3, 0, tokyoTz), Value: "100"},
@@ -551,8 +551,8 @@ until: <nil>
 			mockFailCreateFile, mockFailWriteFile, mockFailCloseFile = false, false, false
 
 			expectedOut := ""
-			expectedErrOut := ""
 			expectedFileOut := `{"points":{"test_id":[{"time":"2004-04-30T12:15:03+09:00","value":"100"},{"time":"2004-05-02T09:00:15Z","value":"200"},{"time":"2004-12-01T00:00:00-04:00","value":"300"}]}}`
+			expectedErrOut := ""
 
 			t.Run("LeastFlags", func(t *testing.T) {
 				t.Run("Short", func(t *testing.T) {
@@ -825,7 +825,7 @@ until: 2012-12-31 23:59:59 +0900 +0900
 	t.Run("ArgumentError", func(t *testing.T) {
 		mockFailLatest, mockFailOldest, mockFailDateRange = false, false, false
 		mockFailCreateFile, mockFailWriteFile, mockFailCloseFile = false, false, false
-		mockResultPointSet = make(map[string](model.ProcessedPointSet))
+		mockResultPointSet = map[string](model.ProcessedPointSet){}
 		mockResultPoint = map[string]([]model.Value){
 			"test_id": {
 				{Time: time.Date(2004, 4, 30, 12, 15, 3, 0, tokyoTz), Value: "100"},
@@ -1071,7 +1071,7 @@ too few arguments
 		t.Run("FileOpen", func(t *testing.T) {
 			mockFailLatest, mockFailOldest, mockFailDateRange = false, false, false
 			mockFailCreateFile, mockFailWriteFile, mockFailCloseFile = true, false, false
-			mockResultPointSet = make(map[string](model.ProcessedPointSet))
+			mockResultPointSet = map[string](model.ProcessedPointSet){}
 			mockResultPoint = map[string]([]model.Value){
 				"test_id": []model.Value{
 					{Time: time.Date(2004, 4, 30, 12, 15, 3, 0, tokyoTz), Value: "100"},
@@ -1102,7 +1102,7 @@ too few arguments
 		})
 		t.Run("FetchMethod", func(t *testing.T) {
 			mockFailCreateFile, mockFailWriteFile, mockFailCloseFile = false, false, false
-			mockResultPointSet = nil
+			mockResultPointSet = map[string](model.ProcessedPointSet){}
 			mockResultPoint = map[string]([]model.Value){
 				"test_id": []model.Value{
 					{Time: time.Date(2004, 4, 30, 12, 15, 3, 0, tokyoTz), Value: "100"},
@@ -1227,10 +1227,10 @@ too few arguments
 			mockResultFiapError = &model.Error{Type: "test_type", Value: "test_value"}
 
 			expectedOut := ""
+			expectedFileOut := `{"point_sets":{"test_id":{"point_set_id":["test_id_1","test_id_2","test_id_3"],"point_id":["test_id_4","test_id_5"]}}}`
 			expectedErrOut := `Error: fiap error: type test_type, value test_value
 `
 			expectedError := "fiap error: type test_type, value test_value"
-			expectedFileOut := `{"point_sets":{"test_id":{"point_set_id":["test_id_1","test_id_2","test_id_3"],"point_id":["test_id_4","test_id_5"]}}}`
 
 			t.Run("FetchLatest", func(t *testing.T) {
 				mockFailLatest, mockFailOldest, mockFailDateRange = false, true, true
@@ -1241,7 +1241,7 @@ too few arguments
 				if err := newRootCmd(actualOut, actualErrOut).Execute(); err == nil {
 					t.Error("expected to fail command but succeed")
 				} else if !strings.Contains(err.Error(), expectedError) {
-					t.Error("expected fetch error but not")
+					t.Error("expected fiap error but not")
 				}
 				if actualOut.String() != expectedOut {
 					t.Error("assertion error of stdout")
@@ -1289,7 +1289,7 @@ too few arguments
 				if err := newRootCmd(actualOut, actualErrOut).Execute(); err == nil {
 					t.Error("expected to fail command but succeed")
 				} else if !strings.Contains(err.Error(), expectedError) {
-					t.Error("expected fetch error but not")
+					t.Error("expected fiap error but not")
 				}
 				if actualOut.String() != expectedOut {
 					t.Error("assertion error of stdout")
@@ -1337,7 +1337,7 @@ too few arguments
 				if err := newRootCmd(actualOut, actualErrOut).Execute(); err == nil {
 					t.Error("expected to fail command but succeed")
 				} else if !strings.Contains(err.Error(), expectedError) {
-					t.Error("expected fetch error but not")
+					t.Error("expected fiap error but not")
 				}
 				if actualOut.String() != expectedOut {
 					t.Error("assertion error of stdout")
