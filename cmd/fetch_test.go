@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	// "encoding/json"
 	"io"
 	"os"
 	"strings"
@@ -9,9 +8,7 @@ import (
 	"time"
 
 	"github.com/SIOS-Technology-Inc/go-fiap-client/pkg/fiap/model"
-	// "github.com/SIOS-Technology-Inc/go-fiap-client/pkg/fiap/tools"
 	"github.com/cockroachdb/errors"
-	// "github.com/spf13/cobra"
 )
 
 var (
@@ -131,14 +128,25 @@ func marshalJSONAlwayseFailed(v any) ([]byte, error) {
 	return nil, errors.New("test json marshal error")
 }
 
-func TestFetchCommandRun(t *testing.T) {
-	tokyoTz := time.FixedZone("Asia/Tokyo", 9*60*60)
-	newYorkTz := time.FixedZone("America/New_York", -4*60*60)
-
+func TestMain(m *testing.M) {
 	fetchLatest = mockFetchLatest
 	fetchOldest = mockFetchOldest
 	fetchDateRange = mockFetchDateRange
 	createFile = mockCreateFile
+
+	m.Run()
+
+	fetchLatest = originalFetchLatest
+	fetchOldest = originalFetchOldest
+	fetchDateRange = originalFetchDateRange
+	createFile = originalCreateFile
+	marshalJSON = originalMarshalJSON
+	os.Args = originalArgs
+}
+
+func TestFetchCommandRun(t *testing.T) {
+	tokyoTz := time.FixedZone("Asia/Tokyo", 9*60*60)
+	newYorkTz := time.FixedZone("America/New_York", -4*60*60)
 
 	t.Run("Normal", func(t *testing.T) {
 		mockResultPointSet = map[string](model.ProcessedPointSet){}
@@ -825,6 +833,54 @@ until: 2012-12-31 23:59:59 +0900 +0900
 					}
 				})
 			})
+		})
+	})
+	t.Run("help", func(t *testing.T) {
+		mockFailLatest, mockFailOldest, mockFailDateRange = true, true, true
+		mockFailCreateFile, mockFailWriteFile, mockFailCloseFile = true, true, true
+
+		expectedOut := `Run FIAP fetch method once
+
+Usage:
+  go-fiap-client fetch [flags] URL (POINT_ID | POINTSET_ID)
+
+Flags:
+  -d, --debug           set output log level to debug
+      --from string     filter query from datetime string=<Datetime in RFC 3339 format>
+  -h, --help            help for fetch
+  -o, --output string   specify output file path. string=<filepath>
+  -s, --select string   fiap select option. string=<max|min|none> (default "max")
+      --until string    filter query until datetime string=<Datetime in RFC 3339 format>
+`
+		expectedErrOut := ""
+
+		t.Run("Short", func(t *testing.T) {
+			os.Args = []string{"go-fiap-client", "fetch", "-h"}
+
+			resetActualValues()
+			if err := newRootCmd(actualOut, actualErrOut).Execute(); err != nil {
+				t.Error("failed to run command")
+			}
+			if actualOut.String() != expectedOut {
+				t.Error("assertion error of stdout")
+			}
+			if actualErrOut.String() != expectedErrOut {
+				t.Error("assertion error of stderr")
+			}
+		})
+		t.Run("Long", func(t *testing.T) {
+			os.Args = []string{"go-fiap-client", "fetch", "--help"}
+
+			resetActualValues()
+			if err := newRootCmd(actualOut, actualErrOut).Execute(); err != nil {
+				t.Error("failed to run command")
+			}
+			if actualOut.String() != expectedOut {
+				t.Error("assertion error of stdout")
+			}
+			if actualErrOut.String() != expectedErrOut {
+				t.Error("assertion error of stderr")
+			}
 		})
 	})
 	t.Run("ArgumentError", func(t *testing.T) {
@@ -1643,11 +1699,4 @@ failed to close file './test/file.ext': test file close error
 			}
 		})
 	})
-
-	fetchLatest = originalFetchLatest
-	fetchOldest = originalFetchOldest
-	fetchDateRange = originalFetchDateRange
-	createFile = originalCreateFile
-	marshalJSON = originalMarshalJSON
-	os.Args = originalArgs
 }

@@ -7,6 +7,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var libVersion = "1.0.0"
+
 func newRootCmd(out io.Writer, errOut io.Writer) *cobra.Command {
 	version := false
 
@@ -15,7 +17,7 @@ func newRootCmd(out io.Writer, errOut io.Writer) *cobra.Command {
 		Short: "IEEE1888 (a.k.a. UGCCNet or FIAP) library for golang",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if version {
-				cmd.Println("1.0.0")
+				cmd.Println(libVersion)
 				return nil
 			} else {
 				return cmd.Help()
