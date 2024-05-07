@@ -23,6 +23,7 @@ var (
 	createFile func(string) (io.WriteCloser, error) = func(name string) (io.WriteCloser, error) {
 		return os.Create(name)
 	}
+	marshalJSON func(v any) ([]byte, error) = json.Marshal
 )
 
 func newFetchCmd(out io.Writer, errOut io.Writer) *cobra.Command {
@@ -184,7 +185,7 @@ func executeFetch(connectionURL string, id string, fromDate, untilDate *time.Tim
 		}
 	}
 
-	if b, err := json.Marshal(&result); err == nil {
+	if b, err := marshalJSON(&result); err == nil {
 		return b, fiapError, nil
 	} else {
 		return nil, fiapError, errors.Wrap(err, "failed to format output to json")
