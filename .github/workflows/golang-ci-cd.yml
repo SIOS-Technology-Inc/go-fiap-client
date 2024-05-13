@@ -51,6 +51,8 @@ jobs:
       # デプロイ
       - name: Deploy
         run: |
-          scp -i FIAP_KEY ./go-fiap-client azureuser@fiap.eastus.cloudapp.azure.com:/home/azureuser
+          echo "$FIAP_KEY" > fiap_key.pem
+          chmod 600 fiap_key.pem
+          scp -i fiap_key.pem ./go-fiap-client azureuser@fiap.eastus.cloudapp.azure.com:/home/azureuser
         env:
           FIAP_KEY: ${{ secrets.FIAP_KEY }}
