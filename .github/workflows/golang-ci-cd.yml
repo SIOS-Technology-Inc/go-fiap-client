@@ -53,4 +53,4 @@ jobs:
         run: |
           scp -i FIAP_KEY ./go-fiap-client azureuser@fiap.eastus.cloudapp.azure.com:/home/azureuser
         env:
-          SSH_PRIVATE_KEY: ${{ secrets.FIAP_KEY }}
+          FIAP_KEY: ${{ secrets.FIAP_KEY }}
