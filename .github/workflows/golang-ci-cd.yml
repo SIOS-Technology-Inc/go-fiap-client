@@ -48,11 +48,12 @@ jobs:
       # ビルド
       - name: Build
         run: go build .
-      # デプロイ
+      # scpでサーバーにデプロイ
       - name: Deploy
-        run: |
-          echo "$FIAP_KEY" > fiap_key.pem
-          chmod 600 fiap_key.pem
-          scp -i fiap_key.pem ./go-fiap-client azureuser@fiap.eastus.cloudapp.azure.com:/home/azureuser
-        env:
-          FIAP_KEY: ${{ secrets.FIAP_KEY }}
+        uses: appleboy/scp-action@0.1.7
+        with:
+          host: fiap.eastus.cloudapp.azure.com
+          username: azureuser
+          key: ${{ secrets.FIAP_KEY }}
+          source: "./go-fiap-client"
+          target: "/home/azureuser"
