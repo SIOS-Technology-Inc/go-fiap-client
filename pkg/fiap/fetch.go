@@ -35,7 +35,6 @@ func (f *FetchClient) Fetch(connectionURL string, keys []model.UserInputKey, opt
 		i++
 		// FetchOnceを実行
 		fetchOnceOption := &model.FetchOnceOption{AcceptableSize: option.AcceptableSize, Cursor: cursor}
-		f := FetchClient{}
 		fetchOncePointSets, fetchOncePoints, newCursor ,fiapErr, err := f.FetchOnce(connectionURL, keys, fetchOnceOption)
 		if err != nil {
 			err = errors.Wrapf(err, "FetchOnce error on loop iteration %d", i)
