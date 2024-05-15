@@ -6,8 +6,8 @@ import (
 )
 
 func TestRootCommandRun(t *testing.T) {
-	mockFailLatest, mockFailOldest, mockFailDateRange = true, true, true
-	mockFailCreateFile, mockFailWriteFile, mockFailCloseFile = true, true, true
+	mockClient.failLatest, mockClient.failOldest, mockClient.failDateRange = true, true, true
+	mockFile.failCreateFile, mockFile.failWriteFile, mockFile.failCloseFile = true, true, true
 
 	t.Run("help", func(t *testing.T) {
 		expectedOut := `IEEE1888 (a.k.a. UGCCNet or FIAP) library for golang
@@ -31,13 +31,13 @@ Use "go-fiap-client [command] --help" for more information about a command.
 			os.Args = []string{"go-fiap-client"}
 
 			resetActualValues()
-			if err := newRootCmd(actualOut, actualErrOut).Execute(); err != nil {
+			if err := newRootCmd(mockOut, mockErrOut).Execute(); err != nil {
 				t.Error("failed to run command")
 			}
-			if actualOut.String() != expectedOut {
+			if mockOut.String() != expectedOut {
 				t.Error("assertion error of stdout")
 			}
-			if actualErrOut.String() != expectedErrOut {
+			if mockErrOut.String() != expectedErrOut {
 				t.Error("assertion error of stderr")
 			}
 		})
@@ -45,13 +45,13 @@ Use "go-fiap-client [command] --help" for more information about a command.
 			os.Args = []string{"go-fiap-client", "-h"}
 
 			resetActualValues()
-			if err := newRootCmd(actualOut, actualErrOut).Execute(); err != nil {
+			if err := newRootCmd(mockOut, mockErrOut).Execute(); err != nil {
 				t.Error("failed to run command")
 			}
-			if actualOut.String() != expectedOut {
+			if mockOut.String() != expectedOut {
 				t.Error("assertion error of stdout")
 			}
-			if actualErrOut.String() != expectedErrOut {
+			if mockErrOut.String() != expectedErrOut {
 				t.Error("assertion error of stderr")
 			}
 		})
@@ -59,13 +59,13 @@ Use "go-fiap-client [command] --help" for more information about a command.
 			os.Args = []string{"go-fiap-client", "--help"}
 
 			resetActualValues()
-			if err := newRootCmd(actualOut, actualErrOut).Execute(); err != nil {
+			if err := newRootCmd(mockOut, mockErrOut).Execute(); err != nil {
 				t.Error("failed to run command")
 			}
-			if actualOut.String() != expectedOut {
+			if mockOut.String() != expectedOut {
 				t.Error("assertion error of stdout")
 			}
-			if actualErrOut.String() != expectedErrOut {
+			if mockErrOut.String() != expectedErrOut {
 				t.Error("assertion error of stderr")
 			}
 		})
@@ -78,13 +78,13 @@ Use "go-fiap-client [command] --help" for more information about a command.
 			os.Args = []string{"go-fiap-client", "-v"}
 
 			resetActualValues()
-			if err := newRootCmd(actualOut, actualErrOut).Execute(); err != nil {
+			if err := newRootCmd(mockOut, mockErrOut).Execute(); err != nil {
 				t.Error("failed to run command")
 			}
-			if actualOut.String() != expectedOut {
+			if mockOut.String() != expectedOut {
 				t.Error("assertion error of stdout")
 			}
-			if actualErrOut.String() != expectedErrOut {
+			if mockErrOut.String() != expectedErrOut {
 				t.Error("assertion error of stderr")
 			}
 		})
@@ -92,13 +92,13 @@ Use "go-fiap-client [command] --help" for more information about a command.
 			os.Args = []string{"go-fiap-client", "--version"}
 
 			resetActualValues()
-			if err := newRootCmd(actualOut, actualErrOut).Execute(); err != nil {
+			if err := newRootCmd(mockOut, mockErrOut).Execute(); err != nil {
 				t.Error("failed to run command")
 			}
-			if actualOut.String() != expectedOut {
+			if mockOut.String() != expectedOut {
 				t.Error("assertion error of stdout")
 			}
-			if actualErrOut.String() != expectedErrOut {
+			if mockErrOut.String() != expectedErrOut {
 				t.Error("assertion error of stderr")
 			}
 		})

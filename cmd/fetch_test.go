@@ -17,18 +17,10 @@ var (
 	originalMarshalJSON = marshalJSON
 	originalArgs        = os.Args
 
-	mockClient = &mockFetchClient{actualArguments: &fetchFuncArguments{}}
-
-	mockFailLatest, mockFailOldest, mockFailDateRange        bool
-	mockFailCreateFile, mockFailWriteFile, mockFailCloseFile bool
-
-	mockResultPointSet  map[string](model.ProcessedPointSet)
-	mockResultPoint     map[string]([]model.Value)
-	mockResultFiapError *model.Error
-
-	actualOut        = &strings.Builder{}
-	actualErrOut     = &strings.Builder{}
-	mockFileInstance = &mockFile{}
+	mockOut    = &strings.Builder{}
+	mockErrOut = &strings.Builder{}
+	mockClient = &mockFetchClient{}
+	mockFile   = &mockFileSystem{}
 )
 
 type fetchFuncArguments struct {
@@ -38,8 +30,17 @@ type fetchFuncArguments struct {
 	ids           []string
 }
 
+type fetchFuncResults struct {
+	pointSets map[string](model.ProcessedPointSet)
+	points    map[string]([]model.Value)
+	fiapErr   *model.Error
+}
+
 type mockFetchClient struct {
-	actualArguments *fetchFuncArguments
+	failLatest, failOldest, failDateRange bool
+
+	actualArguments fetchFuncArguments
+	results         fetchFuncResults
 }
 
 func (f *mockFetchClient) Fetch(connectionURL string, keys []model.UserInputKey, option *model.FetchOption) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), fiapErr *model.Error, err error) {
@@ -55,83 +56,72 @@ func (f *mockFetchClient) FetchByIdsWithKey(connectionURL string, key model.User
 }
 
 func (f *mockFetchClient) FetchLatest(connectionURL string, fromDate *time.Time, untilDate *time.Time, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), fiapErr *model.Error, err error) {
-	if mockFailLatest {
+	if f.failLatest {
 		return nil, nil, nil, errors.New("test FetchLatest error")
 	} else {
 		f.actualArguments.connectionURL = connectionURL
 		f.actualArguments.fromDate = fromDate
 		f.actualArguments.untilDate = untilDate
 		f.actualArguments.ids = ids
-		return mockResultPointSet, mockResultPoint, mockResultFiapError, nil
+		return f.results.pointSets, f.results.points, f.results.fiapErr, nil
 	}
 }
 
 func (f *mockFetchClient) FetchOldest(connectionURL string, fromDate *time.Time, untilDate *time.Time, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), fiapErr *model.Error, err error) {
-	if mockFailOldest {
+	if f.failOldest {
 		return nil, nil, nil, errors.New("test FetchOldest error")
 	} else {
 		f.actualArguments.connectionURL = connectionURL
 		f.actualArguments.fromDate = fromDate
 		f.actualArguments.untilDate = untilDate
 		f.actualArguments.ids = ids
-		return mockResultPointSet, mockResultPoint, mockResultFiapError, nil
+		return f.results.pointSets, f.results.points, f.results.fiapErr, nil
 	}
 }
 
 func (f *mockFetchClient) FetchDateRange(connectionURL string, fromDate *time.Time, untilDate *time.Time, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), fiapErr *model.Error, err error) {
-	if mockFailDateRange {
+	if f.failDateRange {
 		return nil, nil, nil, errors.New("test FetchDateRange error")
 	} else {
 		f.actualArguments.connectionURL = connectionURL
 		f.actualArguments.fromDate = fromDate
 		f.actualArguments.untilDate = untilDate
 		f.actualArguments.ids = ids
-		return mockResultPointSet, mockResultPoint, mockResultFiapError, nil
+		return f.results.pointSets, f.results.points, f.results.fiapErr, nil
 	}
 }
 
-type mockFile struct {
+type mockFileSystem struct {
+	failCreateFile, failWriteFile, failCloseFile bool
+
 	fileName string
 	opened   bool
 	closed   bool
 	builder  strings.Builder
 }
 
-func resetActualValues() {
-	actualOut.Reset()
-	actualErrOut.Reset()
-	mockClient.actualArguments.connectionURL = ""
-	mockClient.actualArguments.fromDate = nil
-	mockClient.actualArguments.untilDate = nil
-	mockClient.actualArguments.ids = nil
-	mockFileInstance.fileName = ""
-	mockFileInstance.opened = false
-	mockFileInstance.closed = false
-	mockFileInstance.builder.Reset()
-}
-
 func mockCreateFile(name string) (io.WriteCloser, error) {
-	if mockFailCreateFile {
+	if mockFile.failCreateFile {
 		return nil, errors.New("test file create error")
 	} else {
-		mockFileInstance.fileName = name
-		mockFileInstance.builder.Reset()
-		mockFileInstance.opened = true
-		mockFileInstance.closed = false
-		return mockFileInstance, nil
+		mockFile.fileName = name
+		mockFile.opened = true
+		mockFile.closed = false
+		mockFile.builder.Reset()
+		return mockFile, nil
 	}
 }
 
-func (f *mockFile) Write(p []byte) (int, error) {
-	if mockFailWriteFile {
+func (f *mockFileSystem) Write(p []byte) (int, error) {
+	if f.failWriteFile {
 		return 0, errors.New("test file write error")
 	} else {
 		return f.builder.Write(p)
 	}
 }
 
-func (f *mockFile) Close() error {
-	if mockFailCloseFile {
+func (f *mockFileSystem) Close() error {
+	if f.failCloseFile {
 		return errors.New("test file close error")
 	} else {
 		f.closed = true
@@ -141,6 +131,19 @@ func (f *mockFile) Close() error {
 
 func marshalJSONAlwayseFailed(v any) ([]byte, error) {
 	return nil, errors.New("test json marshal error")
+}
+
+func resetActualValues() {
+	mockOut.Reset()
+	mockErrOut.Reset()
+	mockClient.actualArguments.connectionURL = ""
+	mockClient.actualArguments.fromDate = nil
+	mockClient.actualArguments.untilDate = nil
+	mockClient.actualArguments.ids = nil
+	mockFile.fileName = ""
+	mockFile.opened = false
+	mockFile.closed = false
+	mockFile.builder.Reset()
 }
 
 func TestMain(m *testing.M) {
@@ -160,37 +163,37 @@ func TestFetchCommandRun(t *testing.T) {
 	newYorkTz := time.FixedZone("America/New_York", -4*60*60)
 
 	t.Run("Normal", func(t *testing.T) {
-		mockResultPointSet = map[string](model.ProcessedPointSet){}
-		mockResultPoint = map[string]([]model.Value){
+		mockClient.results.pointSets = map[string](model.ProcessedPointSet){}
+		mockClient.results.points = map[string]([]model.Value){
 			"test_id": []model.Value{
 				{Time: time.Date(2004, 4, 30, 12, 15, 3, 0, tokyoTz), Value: "100"},
 				{Time: time.Date(2004, 5, 2, 9, 0, 15, 0, time.UTC), Value: "200"},
 				{Time: time.Date(2004, 12, 1, 0, 0, 0, 0, newYorkTz), Value: "300"},
 			},
 		}
-		mockResultFiapError = nil
+		mockClient.results.fiapErr = nil
 
 		t.Run("WithoutFileOutput", func(t *testing.T) {
-			mockFailCreateFile, mockFailWriteFile, mockFailCloseFile = true, true, true
+			mockFile.failCreateFile, mockFile.failWriteFile, mockFile.failCloseFile = true, true, true
 
 			expectedOut := `{"points":{"test_id":[{"time":"2004-04-30T12:15:03+09:00","value":"100"},{"time":"2004-05-02T09:00:15Z","value":"200"},{"time":"2004-12-01T00:00:00-04:00","value":"300"}]}}
 `
 			expectedErrOut := ""
 
 			t.Run("FetchLatest", func(t *testing.T) {
-				mockFailLatest, mockFailOldest, mockFailDateRange = false, true, true
+				mockClient.failLatest, mockClient.failOldest, mockClient.failDateRange = false, true, true
 
 				t.Run("LeastFlags", func(t *testing.T) {
 					os.Args = []string{"go-fiap-client", "fetch", "http://test.url", "test_id"}
 
 					resetActualValues()
-					if err := newRootCmd(actualOut, actualErrOut).Execute(); err != nil {
+					if err := newRootCmd(mockOut, mockErrOut).Execute(); err != nil {
 						t.Error("failed to run command")
 					}
-					if actualOut.String() != expectedOut {
+					if mockOut.String() != expectedOut {
 						t.Error("assertion error of stdout")
 					}
-					if actualErrOut.String() != expectedErrOut {
+					if mockErrOut.String() != expectedErrOut {
 						t.Error("assertion error of stderr")
 					}
 					if mockClient.actualArguments.connectionURL != "http://test.url" {
@@ -217,13 +220,13 @@ func TestFetchCommandRun(t *testing.T) {
 						os.Args = []string{"go-fiap-client", "fetch", "-s", "max", "http://test.url", "test_id"}
 
 						resetActualValues()
-						if err := newRootCmd(actualOut, actualErrOut).Execute(); err != nil {
+						if err := newRootCmd(mockOut, mockErrOut).Execute(); err != nil {
 							t.Error("failed to run command")
 						}
-						if actualOut.String() != expectedOut {
+						if mockOut.String() != expectedOut {
 							t.Error("assertion error of stdout")
 						}
-						if actualErrOut.String() != expectedErrOut {
+						if mockErrOut.String() != expectedErrOut {
 							t.Error("assertion error of stderr")
 						}
 						if mockClient.actualArguments.connectionURL != "http://test.url" {
@@ -249,13 +252,13 @@ func TestFetchCommandRun(t *testing.T) {
 						os.Args = []string{"go-fiap-client", "fetch", "--select", "max", "http://test.url", "test_id"}
 
 						resetActualValues()
-						if err := newRootCmd(actualOut, actualErrOut).Execute(); err != nil {
+						if err := newRootCmd(mockOut, mockErrOut).Execute(); err != nil {
 							t.Error("failed to run command")
 						}
-						if actualOut.String() != expectedOut {
+						if mockOut.String() != expectedOut {
 							t.Error("assertion error of stdout")
 						}
-						if actualErrOut.String() != expectedErrOut {
+						if mockErrOut.String() != expectedErrOut {
 							t.Error("assertion error of stderr")
 						}
 						if mockClient.actualArguments.connectionURL != "http://test.url" {
@@ -291,13 +294,13 @@ until: <nil>
 `
 
 						resetActualValues()
-						if err := newRootCmd(actualOut, actualErrOut).Execute(); err != nil {
+						if err := newRootCmd(mockOut, mockErrOut).Execute(); err != nil {
 							t.Error("failed to run command")
 						}
-						if actualOut.String() != expectedDebugPrint+expectedOut {
+						if mockOut.String() != expectedDebugPrint+expectedOut {
 							t.Error("assertion error of stdout")
 						}
-						if actualErrOut.String() != expectedErrOut {
+						if mockErrOut.String() != expectedErrOut {
 							t.Error("assertion error of stderr")
 						}
 						if mockClient.actualArguments.connectionURL != "http://test.url" {
@@ -331,13 +334,13 @@ until: <nil>
 `
 
 						resetActualValues()
-						if err := newRootCmd(actualOut, actualErrOut).Execute(); err != nil {
+						if err := newRootCmd(mockOut, mockErrOut).Execute(); err != nil {
 							t.Error("failed to run command")
 						}
-						if actualOut.String() != expectedDebugPrint+expectedOut {
+						if mockOut.String() != expectedDebugPrint+expectedOut {
 							t.Error("assertion error of stdout")
 						}
-						if actualErrOut.String() != expectedErrOut {
+						if mockErrOut.String() != expectedErrOut {
 							t.Error("assertion error of stderr")
 						}
 						if mockClient.actualArguments.connectionURL != "http://test.url" {
@@ -365,13 +368,13 @@ until: <nil>
 					expectedFrom := time.Date(2012, 1, 1, 0, 0, 0, 0, tokyoTz)
 
 					resetActualValues()
-					if err := newRootCmd(actualOut, actualErrOut).Execute(); err != nil {
+					if err := newRootCmd(mockOut, mockErrOut).Execute(); err != nil {
 						t.Error("failed to run command")
 					}
-					if actualOut.String() != expectedOut {
+					if mockOut.String() != expectedOut {
 						t.Error("assertion error of stdout")
 					}
-					if actualErrOut.String() != expectedErrOut {
+					if mockErrOut.String() != expectedErrOut {
 						t.Error("assertion error of stderr")
 					}
 					if mockClient.actualArguments.connectionURL != "http://test.url" {
@@ -400,13 +403,13 @@ until: <nil>
 					expectedUntil := time.Date(2012, 12, 31, 23, 59, 59, 0, tokyoTz)
 
 					resetActualValues()
-					if err := newRootCmd(actualOut, actualErrOut).Execute(); err != nil {
+					if err := newRootCmd(mockOut, mockErrOut).Execute(); err != nil {
 						t.Error("failed to run command")
 					}
-					if actualOut.String() != expectedOut {
+					if mockOut.String() != expectedOut {
 						t.Error("assertion error of stdout")
 					}
-					if actualErrOut.String() != expectedErrOut {
+					if mockErrOut.String() != expectedErrOut {
 						t.Error("assertion error of stderr")
 					}
 					if mockClient.actualArguments.connectionURL != "http://test.url" {
@@ -432,19 +435,19 @@ until: <nil>
 				})
 			})
 			t.Run("FetchOldest", func(t *testing.T) {
-				mockFailLatest, mockFailOldest, mockFailDateRange = true, false, true
+				mockClient.failLatest, mockClient.failOldest, mockClient.failDateRange = true, false, true
 
 				t.Run("Short", func(t *testing.T) {
 					os.Args = []string{"go-fiap-client", "fetch", "-s", "min", "http://test.url", "test_id"}
 
 					resetActualValues()
-					if err := newRootCmd(actualOut, actualErrOut).Execute(); err != nil {
+					if err := newRootCmd(mockOut, mockErrOut).Execute(); err != nil {
 						t.Error("failed to run command")
 					}
-					if actualOut.String() != expectedOut {
+					if mockOut.String() != expectedOut {
 						t.Error("assertion error of stdout")
 					}
-					if actualErrOut.String() != expectedErrOut {
+					if mockErrOut.String() != expectedErrOut {
 						t.Error("assertion error of stderr")
 					}
 					if mockClient.actualArguments.connectionURL != "http://test.url" {
@@ -470,13 +473,13 @@ until: <nil>
 					os.Args = []string{"go-fiap-client", "fetch", "--select", "min", "http://test.url", "test_id"}
 
 					resetActualValues()
-					if err := newRootCmd(actualOut, actualErrOut).Execute(); err != nil {
+					if err := newRootCmd(mockOut, mockErrOut).Execute(); err != nil {
 						t.Error("failed to run command")
 					}
-					if actualOut.String() != expectedOut {
+					if mockOut.String() != expectedOut {
 						t.Error("assertion error of stdout")
 					}
-					if actualErrOut.String() != expectedErrOut {
+					if mockErrOut.String() != expectedErrOut {
 						t.Error("assertion error of stderr")
 					}
 					if mockClient.actualArguments.connectionURL != "http://test.url" {
@@ -501,19 +504,19 @@ until: <nil>
 
 			})
 			t.Run("FetchDateRange", func(t *testing.T) {
-				mockFailLatest, mockFailOldest, mockFailDateRange = true, true, false
+				mockClient.failLatest, mockClient.failOldest, mockClient.failDateRange = true, true, false
 
 				t.Run("Short", func(t *testing.T) {
 					os.Args = []string{"go-fiap-client", "fetch", "-s", "none", "http://test.url", "test_id"}
 
 					resetActualValues()
-					if err := newRootCmd(actualOut, actualErrOut).Execute(); err != nil {
+					if err := newRootCmd(mockOut, mockErrOut).Execute(); err != nil {
 						t.Error("failed to run command")
 					}
-					if actualOut.String() != expectedOut {
+					if mockOut.String() != expectedOut {
 						t.Error("assertion error of stdout")
 					}
-					if actualErrOut.String() != expectedErrOut {
+					if mockErrOut.String() != expectedErrOut {
 						t.Error("assertion error of stderr")
 					}
 					if mockClient.actualArguments.connectionURL != "http://test.url" {
@@ -539,13 +542,13 @@ until: <nil>
 					os.Args = []string{"go-fiap-client", "fetch", "--select", "none", "http://test.url", "test_id"}
 
 					resetActualValues()
-					if err := newRootCmd(actualOut, actualErrOut).Execute(); err != nil {
+					if err := newRootCmd(mockOut, mockErrOut).Execute(); err != nil {
 						t.Error("failed to run command")
 					}
-					if actualOut.String() != expectedOut {
+					if mockOut.String() != expectedOut {
 						t.Error("assertion error of stdout")
 					}
-					if actualErrOut.String() != expectedErrOut {
+					if mockErrOut.String() != expectedErrOut {
 						t.Error("assertion error of stderr")
 					}
 					if mockClient.actualArguments.connectionURL != "http://test.url" {
@@ -571,8 +574,8 @@ until: <nil>
 			})
 		})
 		t.Run("WithFileOutput", func(t *testing.T) {
-			mockFailLatest, mockFailOldest, mockFailDateRange = false, true, true
-			mockFailCreateFile, mockFailWriteFile, mockFailCloseFile = false, false, false
+			mockClient.failLatest, mockClient.failOldest, mockClient.failDateRange = false, true, true
+			mockFile.failCreateFile, mockFile.failWriteFile, mockFile.failCloseFile = false, false, false
 
 			expectedOut := ""
 			expectedFileOut := `{"points":{"test_id":[{"time":"2004-04-30T12:15:03+09:00","value":"100"},{"time":"2004-05-02T09:00:15Z","value":"200"},{"time":"2004-12-01T00:00:00-04:00","value":"300"}]}}`
@@ -583,13 +586,13 @@ until: <nil>
 					os.Args = []string{"go-fiap-client", "fetch", "-o", "./test/file.ext", "http://test.url", "test_id"}
 
 					resetActualValues()
-					if err := newRootCmd(actualOut, actualErrOut).Execute(); err != nil {
+					if err := newRootCmd(mockOut, mockErrOut).Execute(); err != nil {
 						t.Error("failed to run command")
 					}
-					if actualOut.String() != expectedOut {
+					if mockOut.String() != expectedOut {
 						t.Error("assertion error of stdout")
 					}
-					if actualErrOut.String() != expectedErrOut {
+					if mockErrOut.String() != expectedErrOut {
 						t.Error("assertion error of stderr")
 					}
 					if mockClient.actualArguments.connectionURL != "http://test.url" {
@@ -610,16 +613,16 @@ until: <nil>
 							t.Error("assertion error of id")
 						}
 					}
-					if !mockFileInstance.opened {
+					if !mockFile.opened {
 						t.Error("file not opened")
 					}
-					if mockFileInstance.fileName != "./test/file.ext" {
+					if mockFile.fileName != "./test/file.ext" {
 						t.Error("assertion error of opened file name")
 					}
-					if mockFileInstance.builder.String() != expectedFileOut {
+					if mockFile.builder.String() != expectedFileOut {
 						t.Error("assertion error of file output")
 					}
-					if !mockFileInstance.closed {
+					if !mockFile.closed {
 						t.Error("file not closed")
 					}
 				})
@@ -627,13 +630,13 @@ until: <nil>
 					os.Args = []string{"go-fiap-client", "fetch", "--output", "./test/file.ext", "http://test.url", "test_id"}
 
 					resetActualValues()
-					if err := newRootCmd(actualOut, actualErrOut).Execute(); err != nil {
+					if err := newRootCmd(mockOut, mockErrOut).Execute(); err != nil {
 						t.Error("failed to run command")
 					}
-					if actualOut.String() != expectedOut {
+					if mockOut.String() != expectedOut {
 						t.Error("assertion error of stdout")
 					}
-					if actualErrOut.String() != expectedErrOut {
+					if mockErrOut.String() != expectedErrOut {
 						t.Error("assertion error of stderr")
 					}
 					if mockClient.actualArguments.connectionURL != "http://test.url" {
@@ -654,16 +657,16 @@ until: <nil>
 							t.Error("assertion error of id")
 						}
 					}
-					if !mockFileInstance.opened {
+					if !mockFile.opened {
 						t.Error("file not opened")
 					}
-					if mockFileInstance.fileName != "./test/file.ext" {
+					if mockFile.fileName != "./test/file.ext" {
 						t.Error("assertion error of opened file name")
 					}
-					if mockFileInstance.builder.String() != expectedFileOut {
+					if mockFile.builder.String() != expectedFileOut {
 						t.Error("assertion error of file output")
 					}
-					if !mockFileInstance.closed {
+					if !mockFile.closed {
 						t.Error("file not closed")
 					}
 				})
@@ -683,13 +686,13 @@ until: 2012-12-31 23:59:59 +0900 +0900
 `
 
 					resetActualValues()
-					if err := newRootCmd(actualOut, actualErrOut).Execute(); err != nil {
+					if err := newRootCmd(mockOut, mockErrOut).Execute(); err != nil {
 						t.Error("failed to run command")
 					}
-					if actualOut.String() != expectedDebugPrint+expectedOut {
+					if mockOut.String() != expectedDebugPrint+expectedOut {
 						t.Error("assertion error of stdout")
 					}
-					if actualErrOut.String() != expectedErrOut {
+					if mockErrOut.String() != expectedErrOut {
 						t.Error("assertion error of stderr")
 					}
 					if mockClient.actualArguments.connectionURL != "http://test.url" {
@@ -714,16 +717,16 @@ until: 2012-12-31 23:59:59 +0900 +0900
 							t.Error("assertion error of id")
 						}
 					}
-					if !mockFileInstance.opened {
+					if !mockFile.opened {
 						t.Error("file not opened")
 					}
-					if mockFileInstance.fileName != "/abs/test/file.ext" {
+					if mockFile.fileName != "/abs/test/file.ext" {
 						t.Error("assertion error of opened file name")
 					}
-					if mockFileInstance.builder.String() != expectedFileOut {
+					if mockFile.builder.String() != expectedFileOut {
 						t.Error("assertion error of file output")
 					}
-					if !mockFileInstance.closed {
+					if !mockFile.closed {
 						t.Error("file not closed")
 					}
 				})
@@ -741,13 +744,13 @@ until: 2012-12-31 23:59:59 +0900 +0900
 `
 
 					resetActualValues()
-					if err := newRootCmd(actualOut, actualErrOut).Execute(); err != nil {
+					if err := newRootCmd(mockOut, mockErrOut).Execute(); err != nil {
 						t.Error("failed to run command")
 					}
-					if actualOut.String() != expectedDebugPrint+expectedOut {
+					if mockOut.String() != expectedDebugPrint+expectedOut {
 						t.Error("assertion error of stdout")
 					}
-					if actualErrOut.String() != expectedErrOut {
+					if mockErrOut.String() != expectedErrOut {
 						t.Error("assertion error of stderr")
 					}
 					if mockClient.actualArguments.connectionURL != "http://test.url" {
@@ -772,16 +775,16 @@ until: 2012-12-31 23:59:59 +0900 +0900
 							t.Error("assertion error of id")
 						}
 					}
-					if !mockFileInstance.opened {
+					if !mockFile.opened {
 						t.Error("file not opened")
 					}
-					if mockFileInstance.fileName != "/abs/test/file.ext" {
+					if mockFile.fileName != "/abs/test/file.ext" {
 						t.Error("assertion error of opened file name")
 					}
-					if mockFileInstance.builder.String() != expectedFileOut {
+					if mockFile.builder.String() != expectedFileOut {
 						t.Error("assertion error of file output")
 					}
-					if !mockFileInstance.closed {
+					if !mockFile.closed {
 						t.Error("file not closed")
 					}
 				})
@@ -799,13 +802,13 @@ until: 2012-12-31 23:59:59 +0900 +0900
 `
 
 					resetActualValues()
-					if err := newRootCmd(actualOut, actualErrOut).Execute(); err != nil {
+					if err := newRootCmd(mockOut, mockErrOut).Execute(); err != nil {
 						t.Error("failed to run command")
 					}
-					if actualOut.String() != expectedDebugPrint+expectedOut {
+					if mockOut.String() != expectedDebugPrint+expectedOut {
 						t.Error("assertion error of stdout")
 					}
-					if actualErrOut.String() != expectedErrOut {
+					if mockErrOut.String() != expectedErrOut {
 						t.Error("assertion error of stderr")
 					}
 					if mockClient.actualArguments.connectionURL != "http://test.url" {
@@ -830,16 +833,16 @@ until: 2012-12-31 23:59:59 +0900 +0900
 							t.Error("assertion error of id")
 						}
 					}
-					if !mockFileInstance.opened {
+					if !mockFile.opened {
 						t.Error("file not opened")
 					}
-					if mockFileInstance.fileName != "/abs/test/spaced file.ext" {
+					if mockFile.fileName != "/abs/test/spaced file.ext" {
 						t.Error("assertion error of opened file name")
 					}
-					if mockFileInstance.builder.String() != expectedFileOut {
+					if mockFile.builder.String() != expectedFileOut {
 						t.Error("assertion error of file output")
 					}
-					if !mockFileInstance.closed {
+					if !mockFile.closed {
 						t.Error("file not closed")
 					}
 				})
@@ -847,8 +850,8 @@ until: 2012-12-31 23:59:59 +0900 +0900
 		})
 	})
 	t.Run("help", func(t *testing.T) {
-		mockFailLatest, mockFailOldest, mockFailDateRange = true, true, true
-		mockFailCreateFile, mockFailWriteFile, mockFailCloseFile = true, true, true
+		mockClient.failLatest, mockClient.failOldest, mockClient.failDateRange = true, true, true
+		mockFile.failCreateFile, mockFile.failWriteFile, mockFile.failCloseFile = true, true, true
 
 		expectedOut := `Run FIAP fetch method once
 
@@ -869,13 +872,13 @@ Flags:
 			os.Args = []string{"go-fiap-client", "fetch", "-h"}
 
 			resetActualValues()
-			if err := newRootCmd(actualOut, actualErrOut).Execute(); err != nil {
+			if err := newRootCmd(mockOut, mockErrOut).Execute(); err != nil {
 				t.Error("failed to run command")
 			}
-			if actualOut.String() != expectedOut {
+			if mockOut.String() != expectedOut {
 				t.Error("assertion error of stdout")
 			}
-			if actualErrOut.String() != expectedErrOut {
+			if mockErrOut.String() != expectedErrOut {
 				t.Error("assertion error of stderr")
 			}
 		})
@@ -883,29 +886,29 @@ Flags:
 			os.Args = []string{"go-fiap-client", "fetch", "--help"}
 
 			resetActualValues()
-			if err := newRootCmd(actualOut, actualErrOut).Execute(); err != nil {
+			if err := newRootCmd(mockOut, mockErrOut).Execute(); err != nil {
 				t.Error("failed to run command")
 			}
-			if actualOut.String() != expectedOut {
+			if mockOut.String() != expectedOut {
 				t.Error("assertion error of stdout")
 			}
-			if actualErrOut.String() != expectedErrOut {
+			if mockErrOut.String() != expectedErrOut {
 				t.Error("assertion error of stderr")
 			}
 		})
 	})
 	t.Run("ArgumentError", func(t *testing.T) {
-		mockFailLatest, mockFailOldest, mockFailDateRange = false, false, false
-		mockFailCreateFile, mockFailWriteFile, mockFailCloseFile = false, false, false
-		mockResultPointSet = map[string](model.ProcessedPointSet){}
-		mockResultPoint = map[string]([]model.Value){
+		mockClient.failLatest, mockClient.failOldest, mockClient.failDateRange = false, false, false
+		mockFile.failCreateFile, mockFile.failWriteFile, mockFile.failCloseFile = false, false, false
+		mockClient.results.pointSets = map[string](model.ProcessedPointSet){}
+		mockClient.results.points = map[string]([]model.Value){
 			"test_id": {
 				{Time: time.Date(2004, 4, 30, 12, 15, 3, 0, tokyoTz), Value: "100"},
 				{Time: time.Date(2004, 5, 2, 9, 0, 15, 0, time.UTC), Value: "200"},
 				{Time: time.Date(2004, 12, 1, 0, 0, 0, 0, newYorkTz), Value: "300"},
 			},
 		}
-		mockResultFiapError = nil
+		mockClient.results.fiapErr = nil
 
 		expectedOut := `Usage:
   go-fiap-client fetch [flags] URL (POINT_ID | POINTSET_ID)
@@ -929,15 +932,15 @@ Flags:
 				os.Args = []string{"go-fiap-client", "fetch", "-s", "aaaaa", "http://test.url", "test_id"}
 
 				resetActualValues()
-				if err := newRootCmd(actualOut, actualErrOut).Execute(); err == nil {
+				if err := newRootCmd(mockOut, mockErrOut).Execute(); err == nil {
 					t.Error("expected to fail command but succeed")
 				} else if !strings.Contains(err.Error(), expectedError) {
 					t.Error("expected select argument error but not")
 				}
-				if actualOut.String() != expectedOut {
+				if mockOut.String() != expectedOut {
 					t.Error("assertion error of stdout")
 				}
-				if actualErrOut.String() != expectedErrOut {
+				if mockErrOut.String() != expectedErrOut {
 					t.Error("assertion error of stderr")
 				}
 			})
@@ -945,15 +948,15 @@ Flags:
 				os.Args = []string{"go-fiap-client", "fetch", "--select", "aaaaa", "http://test.url", "test_id"}
 
 				resetActualValues()
-				if err := newRootCmd(actualOut, actualErrOut).Execute(); err == nil {
+				if err := newRootCmd(mockOut, mockErrOut).Execute(); err == nil {
 					t.Error("expected to fail command but succeed")
 				} else if !strings.Contains(err.Error(), expectedError) {
 					t.Error("expected select argument error but not")
 				}
-				if actualOut.String() != expectedOut {
+				if mockOut.String() != expectedOut {
 					t.Error("assertion error of stdout")
 				}
-				if actualErrOut.String() != expectedErrOut {
+				if mockErrOut.String() != expectedErrOut {
 					t.Error("assertion error of stderr")
 				}
 			})
@@ -967,15 +970,15 @@ Flags:
 `
 
 				resetActualValues()
-				if err := newRootCmd(actualOut, actualErrOut).Execute(); err == nil {
+				if err := newRootCmd(mockOut, mockErrOut).Execute(); err == nil {
 					t.Error("expected to fail command but succeed")
 				} else if !strings.Contains(err.Error(), expectedError) {
 					t.Error("expected from argument error but not")
 				}
-				if actualOut.String() != expectedOut {
+				if mockOut.String() != expectedOut {
 					t.Error("assertion error of stdout")
 				}
-				if actualErrOut.String() != expectedErrOut {
+				if mockErrOut.String() != expectedErrOut {
 					t.Error("assertion error of stderr")
 				}
 			})
@@ -985,15 +988,15 @@ Flags:
 `
 
 				resetActualValues()
-				if err := newRootCmd(actualOut, actualErrOut).Execute(); err == nil {
+				if err := newRootCmd(mockOut, mockErrOut).Execute(); err == nil {
 					t.Error("expected to fail command but succeed")
 				} else if !strings.Contains(err.Error(), expectedError) {
 					t.Error("expected from argument error but not")
 				}
-				if actualOut.String() != expectedOut {
+				if mockOut.String() != expectedOut {
 					t.Error("assertion error of stdout")
 				}
-				if actualErrOut.String() != expectedErrOut {
+				if mockErrOut.String() != expectedErrOut {
 					t.Error("assertion error of stderr")
 				}
 			})
@@ -1007,15 +1010,15 @@ Flags:
 `
 
 				resetActualValues()
-				if err := newRootCmd(actualOut, actualErrOut).Execute(); err == nil {
+				if err := newRootCmd(mockOut, mockErrOut).Execute(); err == nil {
 					t.Error("expected to fail command but succeed")
 				} else if !strings.Contains(err.Error(), expectedError) {
 					t.Error("expected until argument error but not")
 				}
-				if actualOut.String() != expectedOut {
+				if mockOut.String() != expectedOut {
 					t.Error("assertion error of stdout")
 				}
-				if actualErrOut.String() != expectedErrOut {
+				if mockErrOut.String() != expectedErrOut {
 					t.Error("assertion error of stderr")
 				}
 			})
@@ -1025,15 +1028,15 @@ Flags:
 `
 
 				resetActualValues()
-				if err := newRootCmd(actualOut, actualErrOut).Execute(); err == nil {
+				if err := newRootCmd(mockOut, mockErrOut).Execute(); err == nil {
 					t.Error("expected to fail command but succeed")
 				} else if !strings.Contains(err.Error(), expectedError) {
 					t.Error("expected until argument error but not")
 				}
-				if actualOut.String() != expectedOut {
+				if mockOut.String() != expectedOut {
 					t.Error("assertion error of stdout")
 				}
-				if actualErrOut.String() != expectedErrOut {
+				if mockErrOut.String() != expectedErrOut {
 					t.Error("assertion error of stderr")
 				}
 			})
@@ -1045,15 +1048,15 @@ Flags:
 			expectedError := "too few arguments"
 
 			resetActualValues()
-			if err := newRootCmd(actualOut, actualErrOut).Execute(); err == nil {
+			if err := newRootCmd(mockOut, mockErrOut).Execute(); err == nil {
 				t.Error("expected to fail command but succeed")
 			} else if !strings.Contains(err.Error(), expectedError) {
 				t.Error("expected too few arguments error but not")
 			}
-			if actualOut.String() != expectedOut {
+			if mockOut.String() != expectedOut {
 				t.Error("assertion error of stdout")
 			}
-			if actualErrOut.String() != expectedErrOut {
+			if mockErrOut.String() != expectedErrOut {
 				t.Error("assertion error of stderr")
 			}
 		})
@@ -1064,15 +1067,15 @@ Flags:
 			expectedError := "too many arguments"
 
 			resetActualValues()
-			if err := newRootCmd(actualOut, actualErrOut).Execute(); err == nil {
+			if err := newRootCmd(mockOut, mockErrOut).Execute(); err == nil {
 				t.Error("expected to fail command but succeed")
 			} else if !strings.Contains(err.Error(), expectedError) {
 				t.Error("expected too many arguments error but not")
 			}
-			if actualOut.String() != expectedOut {
+			if mockOut.String() != expectedOut {
 				t.Error("assertion error of stdout")
 			}
-			if actualErrOut.String() != expectedErrOut {
+			if mockErrOut.String() != expectedErrOut {
 				t.Error("assertion error of stderr")
 			}
 		})
@@ -1092,7 +1095,7 @@ too many arguments
 `
 
 				resetActualValues()
-				if err := newRootCmd(actualOut, actualErrOut).Execute(); err == nil {
+				if err := newRootCmd(mockOut, mockErrOut).Execute(); err == nil {
 					t.Error("expected to fail command but succeed")
 				} else if !strings.Contains(err.Error(), expectedSelectError) {
 					t.Error("expected select argument error but not")
@@ -1103,10 +1106,10 @@ too many arguments
 				} else if !strings.Contains(err.Error(), expectedManyError) {
 					t.Error("expected too many arguments error but not")
 				}
-				if actualOut.String() != expectedOut {
+				if mockOut.String() != expectedOut {
 					t.Error("assertion error of stdout")
 				}
-				if actualErrOut.String() != expectedErrOut {
+				if mockErrOut.String() != expectedErrOut {
 					t.Error("assertion error of stderr")
 				}
 			})
@@ -1119,7 +1122,7 @@ too few arguments
 `
 
 				resetActualValues()
-				if err := newRootCmd(actualOut, actualErrOut).Execute(); err == nil {
+				if err := newRootCmd(mockOut, mockErrOut).Execute(); err == nil {
 					t.Error("expected to fail command but succeed")
 				} else if !strings.Contains(err.Error(), expectedSelectError) {
 					t.Error("expected select argument error but not")
@@ -1130,10 +1133,10 @@ too few arguments
 				} else if !strings.Contains(err.Error(), expectedFewError) {
 					t.Error("expected too few arguments error but not")
 				}
-				if actualOut.String() != expectedOut {
+				if mockOut.String() != expectedOut {
 					t.Error("assertion error of stdout")
 				}
-				if actualErrOut.String() != expectedErrOut {
+				if mockErrOut.String() != expectedErrOut {
 					t.Error("assertion error of stderr")
 				}
 			})
@@ -1141,17 +1144,17 @@ too few arguments
 	})
 	t.Run("RuntimeError", func(t *testing.T) {
 		t.Run("FileOpen", func(t *testing.T) {
-			mockFailLatest, mockFailOldest, mockFailDateRange = false, false, false
-			mockFailCreateFile, mockFailWriteFile, mockFailCloseFile = true, false, false
-			mockResultPointSet = map[string](model.ProcessedPointSet){}
-			mockResultPoint = map[string]([]model.Value){
+			mockClient.failLatest, mockClient.failOldest, mockClient.failDateRange = false, false, false
+			mockFile.failCreateFile, mockFile.failWriteFile, mockFile.failCloseFile = true, false, false
+			mockClient.results.pointSets = map[string](model.ProcessedPointSet){}
+			mockClient.results.points = map[string]([]model.Value){
 				"test_id": []model.Value{
 					{Time: time.Date(2004, 4, 30, 12, 15, 3, 0, tokyoTz), Value: "100"},
 					{Time: time.Date(2004, 5, 2, 9, 0, 15, 0, time.UTC), Value: "200"},
 					{Time: time.Date(2004, 12, 1, 0, 0, 0, 0, newYorkTz), Value: "300"},
 				},
 			}
-			mockResultFiapError = nil
+			mockClient.results.fiapErr = nil
 
 			os.Args = []string{"go-fiap-client", "fetch", "-o", "./test/file.ext", "http://test.url", "test_id"}
 			expectedOut := ""
@@ -1160,35 +1163,35 @@ too few arguments
 			expectedError := "cannnot open file './test/file.ext'"
 
 			resetActualValues()
-			if err := newRootCmd(actualOut, actualErrOut).Execute(); err == nil {
+			if err := newRootCmd(mockOut, mockErrOut).Execute(); err == nil {
 				t.Error("expected to fail command but succeed")
 			} else if !strings.Contains(err.Error(), expectedError) {
 				t.Error("expected file open error but not")
 			}
-			if actualOut.String() != expectedOut {
+			if mockOut.String() != expectedOut {
 				t.Error("assertion error of stdout")
 			}
-			if actualErrOut.String() != expectedErrOut {
+			if mockErrOut.String() != expectedErrOut {
 				t.Error("assertion error of stderr")
 			}
 		})
 		t.Run("FetchMethod", func(t *testing.T) {
-			mockFailCreateFile, mockFailWriteFile, mockFailCloseFile = false, false, false
-			mockResultPointSet = map[string](model.ProcessedPointSet){}
-			mockResultPoint = map[string]([]model.Value){
+			mockFile.failCreateFile, mockFile.failWriteFile, mockFile.failCloseFile = false, false, false
+			mockClient.results.pointSets = map[string](model.ProcessedPointSet){}
+			mockClient.results.points = map[string]([]model.Value){
 				"test_id": []model.Value{
 					{Time: time.Date(2004, 4, 30, 12, 15, 3, 0, tokyoTz), Value: "100"},
 					{Time: time.Date(2004, 5, 2, 9, 0, 15, 0, time.UTC), Value: "200"},
 					{Time: time.Date(2004, 12, 1, 0, 0, 0, 0, newYorkTz), Value: "300"},
 				},
 			}
-			mockResultFiapError = nil
+			mockClient.results.fiapErr = nil
 
 			expectedOut := ""
 			expectedFileOut := ""
 
 			t.Run("FetchLatest", func(t *testing.T) {
-				mockFailLatest, mockFailOldest, mockFailDateRange = true, false, false
+				mockClient.failLatest, mockClient.failOldest, mockClient.failDateRange = true, false, false
 
 				os.Args = []string{"go-fiap-client", "fetch", "-o", "./test/file.ext", "http://test.url", "test_id"}
 				expectedErrOut := `Error: failed to fetch from http://test.url: test FetchLatest error
@@ -1196,32 +1199,32 @@ too few arguments
 				expectedError := "failed to fetch from http://test.url"
 
 				resetActualValues()
-				if err := newRootCmd(actualOut, actualErrOut).Execute(); err == nil {
+				if err := newRootCmd(mockOut, mockErrOut).Execute(); err == nil {
 					t.Error("expected to fail command but succeed")
 				} else if !strings.Contains(err.Error(), expectedError) {
 					t.Error("expected fetch error but not")
 				}
-				if actualOut.String() != expectedOut {
+				if mockOut.String() != expectedOut {
 					t.Error("assertion error of stdout")
 				}
-				if actualErrOut.String() != expectedErrOut {
+				if mockErrOut.String() != expectedErrOut {
 					t.Error("assertion error of stderr")
 				}
-				if !mockFileInstance.opened {
+				if !mockFile.opened {
 					t.Error("file not opened")
 				}
-				if mockFileInstance.fileName != "./test/file.ext" {
+				if mockFile.fileName != "./test/file.ext" {
 					t.Error("assertion error of opened file name")
 				}
-				if mockFileInstance.builder.String() != expectedFileOut {
+				if mockFile.builder.String() != expectedFileOut {
 					t.Error("assertion error of file output")
 				}
-				if !mockFileInstance.closed {
+				if !mockFile.closed {
 					t.Error("file not closed")
 				}
 			})
 			t.Run("FetchOldest", func(t *testing.T) {
-				mockFailLatest, mockFailOldest, mockFailDateRange = false, true, false
+				mockClient.failLatest, mockClient.failOldest, mockClient.failDateRange = false, true, false
 
 				os.Args = []string{"go-fiap-client", "fetch", "-o", "./test/file.ext", "-s", "min", "http://test.url", "test_id"}
 				expectedErrOut := `Error: failed to fetch from http://test.url: test FetchOldest error
@@ -1229,32 +1232,32 @@ too few arguments
 				expectedError := "failed to fetch from http://test.url"
 
 				resetActualValues()
-				if err := newRootCmd(actualOut, actualErrOut).Execute(); err == nil {
+				if err := newRootCmd(mockOut, mockErrOut).Execute(); err == nil {
 					t.Error("expected to fail command but succeed")
 				} else if !strings.Contains(err.Error(), expectedError) {
 					t.Error("expected fetch error but not")
 				}
-				if actualOut.String() != expectedOut {
+				if mockOut.String() != expectedOut {
 					t.Error("assertion error of stdout")
 				}
-				if actualErrOut.String() != expectedErrOut {
+				if mockErrOut.String() != expectedErrOut {
 					t.Error("assertion error of stderr")
 				}
-				if !mockFileInstance.opened {
+				if !mockFile.opened {
 					t.Error("file not opened")
 				}
-				if mockFileInstance.fileName != "./test/file.ext" {
+				if mockFile.fileName != "./test/file.ext" {
 					t.Error("assertion error of opened file name")
 				}
-				if mockFileInstance.builder.String() != expectedFileOut {
+				if mockFile.builder.String() != expectedFileOut {
 					t.Error("assertion error of file output")
 				}
-				if !mockFileInstance.closed {
+				if !mockFile.closed {
 					t.Error("file not closed")
 				}
 			})
 			t.Run("FetchDateRange", func(t *testing.T) {
-				mockFailLatest, mockFailOldest, mockFailDateRange = false, false, true
+				mockClient.failLatest, mockClient.failOldest, mockClient.failDateRange = false, false, true
 
 				os.Args = []string{"go-fiap-client", "fetch", "-o", "./test/file.ext", "-s", "none", "http://test.url", "test_id"}
 				expectedErrOut := `Error: failed to fetch from http://test.url: test FetchDateRange error
@@ -1262,41 +1265,41 @@ too few arguments
 				expectedError := "failed to fetch from http://test.url"
 
 				resetActualValues()
-				if err := newRootCmd(actualOut, actualErrOut).Execute(); err == nil {
+				if err := newRootCmd(mockOut, mockErrOut).Execute(); err == nil {
 					t.Error("expected to fail command but succeed")
 				} else if !strings.Contains(err.Error(), expectedError) {
 					t.Error("expected fetch error but not")
 				}
-				if actualOut.String() != expectedOut {
+				if mockOut.String() != expectedOut {
 					t.Error("assertion error of stdout")
 				}
-				if actualErrOut.String() != expectedErrOut {
+				if mockErrOut.String() != expectedErrOut {
 					t.Error("assertion error of stderr")
 				}
-				if !mockFileInstance.opened {
+				if !mockFile.opened {
 					t.Error("file not opened")
 				}
-				if mockFileInstance.fileName != "./test/file.ext" {
+				if mockFile.fileName != "./test/file.ext" {
 					t.Error("assertion error of opened file name")
 				}
-				if mockFileInstance.builder.String() != expectedFileOut {
+				if mockFile.builder.String() != expectedFileOut {
 					t.Error("assertion error of file output")
 				}
-				if !mockFileInstance.closed {
+				if !mockFile.closed {
 					t.Error("file not closed")
 				}
 			})
 		})
 		t.Run("FiapError", func(t *testing.T) {
-			mockFailCreateFile, mockFailWriteFile, mockFailCloseFile = false, false, false
-			mockResultPointSet = map[string]model.ProcessedPointSet{
+			mockFile.failCreateFile, mockFile.failWriteFile, mockFile.failCloseFile = false, false, false
+			mockClient.results.pointSets = map[string]model.ProcessedPointSet{
 				"test_id": {
 					PointSetID: []string{"test_id_1", "test_id_2", "test_id_3"},
 					PointID:    []string{"test_id_4", "test_id_5"},
 				},
 			}
-			mockResultPoint = map[string]([]model.Value){}
-			mockResultFiapError = &model.Error{Type: "test_type", Value: "test_value"}
+			mockClient.results.points = map[string]([]model.Value){}
+			mockClient.results.fiapErr = &model.Error{Type: "test_type", Value: "test_value"}
 
 			expectedOut := ""
 			expectedFileOut := `{"point_sets":{"test_id":{"point_set_id":["test_id_1","test_id_2","test_id_3"],"point_id":["test_id_4","test_id_5"]}}}`
@@ -1305,20 +1308,20 @@ too few arguments
 			expectedError := "fiap error: type test_type, value test_value"
 
 			t.Run("FetchLatest", func(t *testing.T) {
-				mockFailLatest, mockFailOldest, mockFailDateRange = false, true, true
+				mockClient.failLatest, mockClient.failOldest, mockClient.failDateRange = false, true, true
 
 				os.Args = []string{"go-fiap-client", "fetch", "-o", "./test/file.ext", "http://test.url", "test_id"}
 
 				resetActualValues()
-				if err := newRootCmd(actualOut, actualErrOut).Execute(); err == nil {
+				if err := newRootCmd(mockOut, mockErrOut).Execute(); err == nil {
 					t.Error("expected to fail command but succeed")
 				} else if !strings.Contains(err.Error(), expectedError) {
 					t.Error("expected fiap error but not")
 				}
-				if actualOut.String() != expectedOut {
+				if mockOut.String() != expectedOut {
 					t.Error("assertion error of stdout")
 				}
-				if actualErrOut.String() != expectedErrOut {
+				if mockErrOut.String() != expectedErrOut {
 					t.Error("assertion error of stderr")
 				}
 				if mockClient.actualArguments.connectionURL != "http://test.url" {
@@ -1339,34 +1342,34 @@ too few arguments
 						t.Error("assertion error of id")
 					}
 				}
-				if !mockFileInstance.opened {
+				if !mockFile.opened {
 					t.Error("file not opened")
 				}
-				if mockFileInstance.fileName != "./test/file.ext" {
+				if mockFile.fileName != "./test/file.ext" {
 					t.Error("assertion error of opened file name")
 				}
-				if mockFileInstance.builder.String() != expectedFileOut {
+				if mockFile.builder.String() != expectedFileOut {
 					t.Error("assertion error of file output")
 				}
-				if !mockFileInstance.closed {
+				if !mockFile.closed {
 					t.Error("file not closed")
 				}
 			})
 			t.Run("FetchOldest", func(t *testing.T) {
-				mockFailLatest, mockFailOldest, mockFailDateRange = true, false, true
+				mockClient.failLatest, mockClient.failOldest, mockClient.failDateRange = true, false, true
 
 				os.Args = []string{"go-fiap-client", "fetch", "-o", "./test/file.ext", "-s", "min", "http://test.url", "test_id"}
 
 				resetActualValues()
-				if err := newRootCmd(actualOut, actualErrOut).Execute(); err == nil {
+				if err := newRootCmd(mockOut, mockErrOut).Execute(); err == nil {
 					t.Error("expected to fail command but succeed")
 				} else if !strings.Contains(err.Error(), expectedError) {
 					t.Error("expected fiap error but not")
 				}
-				if actualOut.String() != expectedOut {
+				if mockOut.String() != expectedOut {
 					t.Error("assertion error of stdout")
 				}
-				if actualErrOut.String() != expectedErrOut {
+				if mockErrOut.String() != expectedErrOut {
 					t.Error("assertion error of stderr")
 				}
 				if mockClient.actualArguments.connectionURL != "http://test.url" {
@@ -1387,34 +1390,34 @@ too few arguments
 						t.Error("assertion error of id")
 					}
 				}
-				if !mockFileInstance.opened {
+				if !mockFile.opened {
 					t.Error("file not opened")
 				}
-				if mockFileInstance.fileName != "./test/file.ext" {
+				if mockFile.fileName != "./test/file.ext" {
 					t.Error("assertion error of opened file name")
 				}
-				if mockFileInstance.builder.String() != expectedFileOut {
+				if mockFile.builder.String() != expectedFileOut {
 					t.Error("assertion error of file output")
 				}
-				if !mockFileInstance.closed {
+				if !mockFile.closed {
 					t.Error("file not closed")
 				}
 			})
 			t.Run("FetchDateRange", func(t *testing.T) {
-				mockFailLatest, mockFailOldest, mockFailDateRange = true, true, false
+				mockClient.failLatest, mockClient.failOldest, mockClient.failDateRange = true, true, false
 
 				os.Args = []string{"go-fiap-client", "fetch", "-o", "./test/file.ext", "-s", "none", "http://test.url", "test_id"}
 
 				resetActualValues()
-				if err := newRootCmd(actualOut, actualErrOut).Execute(); err == nil {
+				if err := newRootCmd(mockOut, mockErrOut).Execute(); err == nil {
 					t.Error("expected to fail command but succeed")
 				} else if !strings.Contains(err.Error(), expectedError) {
 					t.Error("expected fiap error but not")
 				}
-				if actualOut.String() != expectedOut {
+				if mockOut.String() != expectedOut {
 					t.Error("assertion error of stdout")
 				}
-				if actualErrOut.String() != expectedErrOut {
+				if mockErrOut.String() != expectedErrOut {
 					t.Error("assertion error of stderr")
 				}
 				if mockClient.actualArguments.connectionURL != "http://test.url" {
@@ -1435,31 +1438,31 @@ too few arguments
 						t.Error("assertion error of id")
 					}
 				}
-				if !mockFileInstance.opened {
+				if !mockFile.opened {
 					t.Error("file not opened")
 				}
-				if mockFileInstance.fileName != "./test/file.ext" {
+				if mockFile.fileName != "./test/file.ext" {
 					t.Error("assertion error of opened file name")
 				}
-				if mockFileInstance.builder.String() != expectedFileOut {
+				if mockFile.builder.String() != expectedFileOut {
 					t.Error("assertion error of file output")
 				}
-				if !mockFileInstance.closed {
+				if !mockFile.closed {
 					t.Error("file not closed")
 				}
 			})
 		})
 		t.Run("FileWrite", func(t *testing.T) {
-			mockFailLatest, mockFailOldest, mockFailDateRange = false, true, true
-			mockFailCreateFile, mockFailWriteFile, mockFailCloseFile = false, true, false
-			mockResultPointSet = map[string]model.ProcessedPointSet{
+			mockClient.failLatest, mockClient.failOldest, mockClient.failDateRange = false, true, true
+			mockFile.failCreateFile, mockFile.failWriteFile, mockFile.failCloseFile = false, true, false
+			mockClient.results.pointSets = map[string]model.ProcessedPointSet{
 				"test_id": {
 					PointSetID: []string{"test_id_1", "test_id_2", "test_id_3"},
 					PointID:    []string{"test_id_4", "test_id_5"},
 				},
 			}
-			mockResultPoint = map[string]([]model.Value){}
-			mockResultFiapError = nil
+			mockClient.results.points = map[string]([]model.Value){}
+			mockClient.results.fiapErr = nil
 
 			os.Args = []string{"go-fiap-client", "fetch", "-o", "./test/file.ext", "http://test.url", "test_id"}
 			expectedOut := ""
@@ -1469,15 +1472,15 @@ too few arguments
 			expectedError := "failed to write file './test/file.ext'"
 
 			resetActualValues()
-			if err := newRootCmd(actualOut, actualErrOut).Execute(); err == nil {
+			if err := newRootCmd(mockOut, mockErrOut).Execute(); err == nil {
 				t.Error("expected to fail command but succeed")
 			} else if !strings.Contains(err.Error(), expectedError) {
 				t.Error("expected file write error but not")
 			}
-			if actualOut.String() != expectedOut {
+			if mockOut.String() != expectedOut {
 				t.Error("assertion error of stdout")
 			}
-			if actualErrOut.String() != expectedErrOut {
+			if mockErrOut.String() != expectedErrOut {
 				t.Error("assertion error of stderr")
 			}
 			if mockClient.actualArguments.connectionURL != "http://test.url" {
@@ -1498,30 +1501,30 @@ too few arguments
 					t.Error("assertion error of id")
 				}
 			}
-			if !mockFileInstance.opened {
+			if !mockFile.opened {
 				t.Error("file not opened")
 			}
-			if mockFileInstance.fileName != "./test/file.ext" {
+			if mockFile.fileName != "./test/file.ext" {
 				t.Error("assertion error of opened file name")
 			}
-			if mockFileInstance.builder.String() != expectedFileOut {
+			if mockFile.builder.String() != expectedFileOut {
 				t.Error("assertion error of file output")
 			}
-			if !mockFileInstance.closed {
+			if !mockFile.closed {
 				t.Error("file not closed")
 			}
 		})
 		t.Run("FileClose", func(t *testing.T) {
-			mockFailLatest, mockFailOldest, mockFailDateRange = false, true, true
-			mockFailCreateFile, mockFailWriteFile, mockFailCloseFile = false, false, true
-			mockResultPointSet = map[string]model.ProcessedPointSet{
+			mockClient.failLatest, mockClient.failOldest, mockClient.failDateRange = false, true, true
+			mockFile.failCreateFile, mockFile.failWriteFile, mockFile.failCloseFile = false, false, true
+			mockClient.results.pointSets = map[string]model.ProcessedPointSet{
 				"test_id": {
 					PointSetID: []string{"test_id_1", "test_id_2", "test_id_3"},
 					PointID:    []string{"test_id_4", "test_id_5"},
 				},
 			}
-			mockResultPoint = map[string]([]model.Value){}
-			mockResultFiapError = nil
+			mockClient.results.points = map[string]([]model.Value){}
+			mockClient.results.fiapErr = nil
 
 			os.Args = []string{"go-fiap-client", "fetch", "-o", "./test/file.ext", "http://test.url", "test_id"}
 			expectedOut := ""
@@ -1531,15 +1534,15 @@ too few arguments
 			expectedError := "failed to close file './test/file.ext'"
 
 			resetActualValues()
-			if err := newRootCmd(actualOut, actualErrOut).Execute(); err == nil {
+			if err := newRootCmd(mockOut, mockErrOut).Execute(); err == nil {
 				t.Error("expected to fail command but succeed")
 			} else if !strings.Contains(err.Error(), expectedError) {
 				t.Error("expected file close error but not")
 			}
-			if actualOut.String() != expectedOut {
+			if mockOut.String() != expectedOut {
 				t.Error("assertion error of stdout")
 			}
-			if actualErrOut.String() != expectedErrOut {
+			if mockErrOut.String() != expectedErrOut {
 				t.Error("assertion error of stderr")
 			}
 			if mockClient.actualArguments.connectionURL != "http://test.url" {
@@ -1560,32 +1563,32 @@ too few arguments
 					t.Error("assertion error of id")
 				}
 			}
-			if !mockFileInstance.opened {
+			if !mockFile.opened {
 				t.Error("file not opened")
 			}
-			if mockFileInstance.fileName != "./test/file.ext" {
+			if mockFile.fileName != "./test/file.ext" {
 				t.Error("assertion error of opened file name")
 			}
-			if mockFileInstance.builder.String() != expectedFileOut {
+			if mockFile.builder.String() != expectedFileOut {
 				t.Error("assertion error of file output")
 			}
-			if mockFileInstance.closed {
+			if mockFile.closed {
 				t.Error("expected to fail close file but succeed")
 			}
 		})
 		t.Run("FormatToJson", func(t *testing.T) {
 			marshalJSON = marshalJSONAlwayseFailed
 
-			mockFailLatest, mockFailOldest, mockFailDateRange = false, true, true
-			mockFailCreateFile, mockFailWriteFile, mockFailCloseFile = false, false, false
-			mockResultPointSet = map[string]model.ProcessedPointSet{
+			mockClient.failLatest, mockClient.failOldest, mockClient.failDateRange = false, true, true
+			mockFile.failCreateFile, mockFile.failWriteFile, mockFile.failCloseFile = false, false, false
+			mockClient.results.pointSets = map[string]model.ProcessedPointSet{
 				"test_id": {
 					PointSetID: []string{"test_id_1", "test_id_2", "test_id_3"},
 					PointID:    []string{"test_id_4", "test_id_5"},
 				},
 			}
-			mockResultPoint = map[string]([]model.Value){}
-			mockResultFiapError = nil
+			mockClient.results.points = map[string]([]model.Value){}
+			mockClient.results.fiapErr = nil
 
 			os.Args = []string{"go-fiap-client", "fetch", "-o", "./test/file.ext", "http://test.url", "test_id"}
 			expectedOut := ""
@@ -1595,15 +1598,15 @@ too few arguments
 			expectedError := "failed to format output to json"
 
 			resetActualValues()
-			if err := newRootCmd(actualOut, actualErrOut).Execute(); err == nil {
+			if err := newRootCmd(mockOut, mockErrOut).Execute(); err == nil {
 				t.Error("expected to fail command but succeed")
 			} else if !strings.Contains(err.Error(), expectedError) {
 				t.Error("expected json format error but not")
 			}
-			if actualOut.String() != expectedOut {
+			if mockOut.String() != expectedOut {
 				t.Error("assertion error of stdout")
 			}
-			if actualErrOut.String() != expectedErrOut {
+			if mockErrOut.String() != expectedErrOut {
 				t.Error("assertion error of stderr")
 			}
 			if mockClient.actualArguments.connectionURL != "http://test.url" {
@@ -1624,32 +1627,32 @@ too few arguments
 					t.Error("assertion error of id")
 				}
 			}
-			if !mockFileInstance.opened {
+			if !mockFile.opened {
 				t.Error("file not opened")
 			}
-			if mockFileInstance.fileName != "./test/file.ext" {
+			if mockFile.fileName != "./test/file.ext" {
 				t.Error("assertion error of opened file name")
 			}
-			if mockFileInstance.builder.String() != expectedFileOut {
+			if mockFile.builder.String() != expectedFileOut {
 				t.Error("assertion error of file output")
 			}
-			if !mockFileInstance.closed {
+			if !mockFile.closed {
 				t.Error("file not closed")
 			}
 
 			marshalJSON = originalMarshalJSON
 		})
 		t.Run("Multiple", func(t *testing.T) {
-			mockFailLatest, mockFailOldest, mockFailDateRange = false, true, true
-			mockFailCreateFile, mockFailWriteFile, mockFailCloseFile = false, true, true
-			mockResultPointSet = map[string]model.ProcessedPointSet{
+			mockClient.failLatest, mockClient.failOldest, mockClient.failDateRange = false, true, true
+			mockFile.failCreateFile, mockFile.failWriteFile, mockFile.failCloseFile = false, true, true
+			mockClient.results.pointSets = map[string]model.ProcessedPointSet{
 				"test_id": {
 					PointSetID: []string{"test_id_1", "test_id_2", "test_id_3"},
 					PointID:    []string{"test_id_4", "test_id_5"},
 				},
 			}
-			mockResultPoint = map[string]([]model.Value){}
-			mockResultFiapError = &model.Error{Type: "test_type", Value: "test_value"}
+			mockClient.results.points = map[string]([]model.Value){}
+			mockClient.results.fiapErr = &model.Error{Type: "test_type", Value: "test_value"}
 
 			os.Args = []string{"go-fiap-client", "fetch", "-o", "./test/file.ext", "http://test.url", "test_id"}
 			expectedOut := ""
@@ -1663,7 +1666,7 @@ failed to close file './test/file.ext': test file close error
 			expectedFileCloseError := "failed to close file './test/file.ext'"
 
 			resetActualValues()
-			if err := newRootCmd(actualOut, actualErrOut).Execute(); err == nil {
+			if err := newRootCmd(mockOut, mockErrOut).Execute(); err == nil {
 				t.Error("expected to fail command but succeed")
 			} else if !strings.Contains(err.Error(), expectedFiapError) {
 				t.Error("expected fiap error but not")
@@ -1672,10 +1675,10 @@ failed to close file './test/file.ext': test file close error
 			} else if !strings.Contains(err.Error(), expectedFileCloseError) {
 				t.Error("expected file close error but not")
 			}
-			if actualOut.String() != expectedOut {
+			if mockOut.String() != expectedOut {
 				t.Error("assertion error of stdout")
 			}
-			if actualErrOut.String() != expectedErrOut {
+			if mockErrOut.String() != expectedErrOut {
 				t.Error("assertion error of stderr")
 			}
 			if mockClient.actualArguments.connectionURL != "http://test.url" {
@@ -1696,16 +1699,16 @@ failed to close file './test/file.ext': test file close error
 					t.Error("assertion error of id")
 				}
 			}
-			if !mockFileInstance.opened {
+			if !mockFile.opened {
 				t.Error("file not opened")
 			}
-			if mockFileInstance.fileName != "./test/file.ext" {
+			if mockFile.fileName != "./test/file.ext" {
 				t.Error("assertion error of opened file name")
 			}
-			if mockFileInstance.builder.String() != expectedFileOut {
+			if mockFile.builder.String() != expectedFileOut {
 				t.Error("assertion error of file output")
 			}
-			if mockFileInstance.closed {
+			if mockFile.closed {
 				t.Error("expected to fail close file but succeed")
 			}
 		})
