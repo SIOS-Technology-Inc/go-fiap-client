@@ -84,7 +84,9 @@ func newFetchCmd(out io.Writer, errOut io.Writer) *cobra.Command {
 
 			connectionURL := args[0]
 			id := args[1]
-			tools.DEBUG = debug
+			if debug {
+				tools.SetLogLevel("debug")
+			}
 			if outputString != "" {
 				if f, err := createFile(outputString); err == nil {
 					output = f
@@ -96,7 +98,7 @@ func newFetchCmd(out io.Writer, errOut io.Writer) *cobra.Command {
 			if debug {
 				cmd.Println("url:", connectionURL)
 				cmd.Println("id:", id)
-				cmd.Println("debug:", tools.DEBUG)
+				cmd.Println("debug:", debug)
 				cmd.Println("output:", outputString)
 				cmd.Println("select:", selectType)
 				cmd.Println("from:", fromDate)
