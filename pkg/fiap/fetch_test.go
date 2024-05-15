@@ -17,7 +17,12 @@ import (
 	"github.com/SIOS-Technology-Inc/go-fiap-client/pkg/fiap/tools"
 )
 
+const defaultConnectionURL = "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage"
+
 func TestFetchOncePointBoundary(t *testing.T){
+	connectionURL := defaultConnectionURL
+	f := FetchClient{}
+
 	// テストケースを定義
 	testCases := []struct {
 		name            string
@@ -73,12 +78,11 @@ func TestFetchOncePointBoundary(t *testing.T){
 
 			// 下記URLにPOSTしたときの挙動を定義
 			responder := testutil.CustomBodyResponder(tc.body)
-			httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
+			httpmock.RegisterResponder("POST", connectionURL, responder)
 
 			// テスト対象の関数を実行
-			f := FetchClient{}
 			_, points, _, _, err := f.FetchOnce(
-					"http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",
+					connectionURL,
 					[]model.UserInputKey{
 							{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
 					},
@@ -92,6 +96,9 @@ func TestFetchOncePointBoundary(t *testing.T){
 }
 
 func TestFetchOncePointValueBoundary(t *testing.T) {
+	connectionURL := defaultConnectionURL
+	f := FetchClient{}
+
 	// テストケースを定義
 	testCases := []struct {
 		name            string
@@ -164,12 +171,11 @@ func TestFetchOncePointValueBoundary(t *testing.T) {
 
 					// 下記URLにPOSTしたときの挙動を定義
 					responder := testutil.CustomBodyResponder(tc.body)
-					httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
+					httpmock.RegisterResponder("POST", connectionURL, responder)
 
 					// テスト対象の関数を実行
-					f := FetchClient{}
 					_, points, _, _, err := f.FetchOnce(
-							"http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",
+							connectionURL,
 							[]model.UserInputKey{
 									{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
 							},
@@ -184,6 +190,9 @@ func TestFetchOncePointValueBoundary(t *testing.T) {
 }
 
 func TestFetchOncePointSetBoundary(t *testing.T){
+	connectionURL := defaultConnectionURL
+	f := FetchClient{}
+
 	// テストケースを定義
 	testCases := []struct {
 		name            string
@@ -246,12 +255,11 @@ func TestFetchOncePointSetBoundary(t *testing.T){
 
 				// 下記URLにPOSTしたときの挙動を定義
 				responder := testutil.CustomBodyResponder(tc.body)
-				httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
+				httpmock.RegisterResponder("POST", connectionURL, responder)
 
 				// テスト対象の関数を実行
-				f := FetchClient{}
 				pointSets, _, _, _, err := f.FetchOnce(
-						"http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",
+						connectionURL,
 						[]model.UserInputKey{
 								{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
 						},
@@ -267,6 +275,9 @@ func TestFetchOncePointSetBoundary(t *testing.T){
 }
 
 func TestFetchOncePointSetPointSetIDBoundary(t *testing.T){
+	connectionURL := defaultConnectionURL
+	f := FetchClient{}
+
 	// テストケースを定義
 	testCases := []struct {
 		name            string
@@ -320,12 +331,11 @@ func TestFetchOncePointSetPointSetIDBoundary(t *testing.T){
 
 				// 下記URLにPOSTしたときの挙動を定義
 				responder := testutil.CustomBodyResponder(tc.body)
-				httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
+				httpmock.RegisterResponder("POST", connectionURL, responder)
 
 				// テスト対象の関数を実行
-				f := FetchClient{}
 				pointSets, _, _, _, err := f.FetchOnce(
-						"http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",
+						connectionURL,
 						[]model.UserInputKey{
 								{ID: "http://xxxxxxxx/tokyo/building1/"},
 						},
@@ -340,6 +350,9 @@ func TestFetchOncePointSetPointSetIDBoundary(t *testing.T){
 }
 
 func TestFetchOncePointSetPointIdBoundary(t *testing.T){
+	connectionURL := defaultConnectionURL
+	f := FetchClient{}
+
 	// テストケースを定義
 	testCases := []struct {
 		name            string
@@ -393,12 +406,11 @@ func TestFetchOncePointSetPointIdBoundary(t *testing.T){
 
 				// 下記URLにPOSTしたときの挙動を定義
 				responder := testutil.CustomBodyResponder(tc.body)
-				httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
+				httpmock.RegisterResponder("POST", connectionURL, responder)
 
 				// テスト対象の関数を実行
-				f := FetchClient{}
 				pointSets, _, _, _, err := f.FetchOnce(
-						"http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",
+						connectionURL,
 						[]model.UserInputKey{
 								{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
 						},
@@ -414,6 +426,9 @@ func TestFetchOncePointSetPointIdBoundary(t *testing.T){
 }
 
 func TestFetchOnceBoundaryCombination(t *testing.T){
+	connectionURL := defaultConnectionURL
+	f := FetchClient{}
+
 	expectedPoints := map[string][]model.Value{
 		"http://xxxxxxxx/tokyo/building1/Room101/": {
 			{
@@ -477,12 +492,11 @@ func TestFetchOnceBoundaryCombination(t *testing.T){
 	</body>
 	`)
 
-	httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
+	httpmock.RegisterResponder("POST", connectionURL, responder)
 
 	// テスト対象の関数を実行
-	f := FetchClient{}
 	pointSets, points, _, _, err := f.FetchOnce(
-		"http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",
+		connectionURL,
 		[]model.UserInputKey{
 			{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
 		},
@@ -495,6 +509,9 @@ func TestFetchOnceBoundaryCombination(t *testing.T){
 }
 
 func TestFetchOnceBodyIsEmpty(t *testing.T){
+	connectionURL := defaultConnectionURL
+	f := FetchClient{}
+
 	// mockの有効化
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
@@ -505,12 +522,11 @@ func TestFetchOnceBodyIsEmpty(t *testing.T){
 	</body>
 	`)
 
-	httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
+	httpmock.RegisterResponder("POST", connectionURL, responder)
 
 	// テスト対象の関数を実行
-	f := FetchClient{}
 	pointSets, points, _, _, err := f.FetchOnce(
-		"http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",
+		connectionURL,
 		[]model.UserInputKey{
 			{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
 		},
@@ -523,6 +539,9 @@ func TestFetchOnceBodyIsEmpty(t *testing.T){
 }
 
 func TestFetchOnceWithRepeatedPointSetId(t *testing.T) {
+	connectionURL := defaultConnectionURL
+	f := FetchClient{}
+
 	testCases := []struct {
 			name          string
 			responderBody string
@@ -633,12 +652,11 @@ func TestFetchOnceWithRepeatedPointSetId(t *testing.T) {
 
 					// 下記URLにPOSTしたときの挙動を定義
 					responder := testutil.CustomBodyResponder(tc.responderBody)
-					httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
+					httpmock.RegisterResponder("POST", connectionURL, responder)
 
 					// テスト対象の関数を実行
-					f := FetchClient{}
 					pointSets, _, _, _, err := f.FetchOnce(
-							"http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",
+							connectionURL,
 							[]model.UserInputKey{
 									{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
 							},
@@ -652,6 +670,9 @@ func TestFetchOnceWithRepeatedPointSetId(t *testing.T) {
 }
 
 func TestFetchOnceWithRepeatedPointId(t *testing.T) {
+	connectionURL := defaultConnectionURL
+	f := FetchClient{}
+
 	testCases := []struct {
 			name          string
 			responderBody string
@@ -776,12 +797,11 @@ func TestFetchOnceWithRepeatedPointId(t *testing.T) {
 
 					// 下記URLにPOSTしたときの挙動を定義
 					responder := testutil.CustomBodyResponder(tc.responderBody)
-					httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
+					httpmock.RegisterResponder("POST", connectionURL, responder)
 
 					// テスト対象の関数を実行
-					f := FetchClient{}
 					_, points, _, _, err := f.FetchOnce(
-							"http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",
+							connectionURL,
 							[]model.UserInputKey{
 									{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
 							},
@@ -796,6 +816,9 @@ func TestFetchOnceWithRepeatedPointId(t *testing.T) {
 
 
 func TestFetchOnceCursor(t *testing.T) {
+	connectionURL := defaultConnectionURL
+	f := FetchClient{}
+
 	testCases := []struct {
 			name          string
 			responderBody string
@@ -845,12 +868,11 @@ func TestFetchOnceCursor(t *testing.T) {
 
 					// 下記URLにPOSTしたときの挙動を定義
 					responder := testutil.CustomHeaderBodyResponder(tc.responderBody)
-					httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
+					httpmock.RegisterResponder("POST", connectionURL, responder)
 
 					// テスト対象の関数を実行
-					f := FetchClient{}
 					_, _, cursor, _, err := f.FetchOnce(
-							"http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",
+							connectionURL,
 							[]model.UserInputKey{
 									{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
 							},
@@ -915,18 +937,20 @@ func TestFetchOnceFiapFetchInputError(t *testing.T){
 }
 
 func TestFetchOnceFiapFetchRequestError(t *testing.T){
+	connectionURL := defaultConnectionURL
+	f := FetchClient{}
+
 	// mockの有効化
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 
 	// 下記URLにPOSTしたときの挙動を定義
-	httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", 
+	httpmock.RegisterResponder("POST", connectionURL, 
 		httpmock.NewErrorResponder(errors.New("mocked error")))
 
 	// テスト対象の関数を実行
-	f := FetchClient{}
 	_, _, _, _, err := f.FetchOnce(
-		"http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",
+		connectionURL,
 		[]model.UserInputKey{
 			{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
 		},
@@ -939,6 +963,9 @@ func TestFetchOnceFiapFetchRequestError(t *testing.T){
 }
 
 func TestFetchOnceProcessQueryRSErrorWithStatusCode(t *testing.T){
+	connectionURL := defaultConnectionURL
+	f := FetchClient{}
+
 	testcases := []struct{
 		name string
 		transport string
@@ -988,12 +1015,11 @@ func TestFetchOnceProcessQueryRSErrorWithStatusCode(t *testing.T){
 
 			// 下記URLにPOSTしたときの挙動を定義
 			responder := testutil.CustomTransportStatusCodeResponder(tc.transport, tc.statusCode)
-			httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
+			httpmock.RegisterResponder("POST", connectionURL, responder)
 
 			// テスト対象の関数を実行
-			f := FetchClient{}
 			_, _, _, _, err := f.FetchOnce(
-				"http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",
+				connectionURL,
 				[]model.UserInputKey{
 					{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
 				},
@@ -1008,6 +1034,9 @@ func TestFetchOnceProcessQueryRSErrorWithStatusCode(t *testing.T){
 }
 
 func TestFetchOnceProcessQueryRSFiapErr(t *testing.T){
+	connectionURL := defaultConnectionURL
+	f := FetchClient{}
+
 	// mockの有効化
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
@@ -1018,12 +1047,11 @@ func TestFetchOnceProcessQueryRSFiapErr(t *testing.T){
 		<error type="POINT_NOT_FOUND">The requested point is not managed in this server.</error>
 	</header>
 	`)
-	httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
+	httpmock.RegisterResponder("POST", connectionURL, responder)
 
 	// テスト対象の関数を実行
-	f := FetchClient{}
 	_, _, _, fiapErr, _ := f.FetchOnce(
-		"http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",
+		connectionURL,
 		[]model.UserInputKey{
 			{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
 		},
@@ -1039,6 +1067,9 @@ func TestFetchOnceProcessQueryRSFiapErr(t *testing.T){
 }
 
 func TestFetchFetchOnce1(t *testing.T){
+	connectionURL := defaultConnectionURL
+	f := FetchClient{}
+
 	// httpmockの有効化
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
@@ -1062,11 +1093,10 @@ func TestFetchFetchOnce1(t *testing.T){
 		</pointSet>
 	</body>
 	`)
-	httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
+	httpmock.RegisterResponder("POST", connectionURL, responder)
 
 	// テスト対象の関数を実行
-	f := FetchClient{}
-	pointSets, points, _, err := f.Fetch("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", []model.UserInputKey{
+	pointSets, points, _, err := f.Fetch(connectionURL, []model.UserInputKey{
 		{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
 	}, &model.FetchOption{})
 
@@ -1088,11 +1118,14 @@ func TestFetchFetchOnce1(t *testing.T){
 }
 
 func TestFetchFetchOnce2(t *testing.T){
+	connectionURL := defaultConnectionURL
+	f := FetchClient{}
+
 	// httpmockの有効化
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 
-	httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", 
+	httpmock.RegisterResponder("POST", connectionURL, 
 		func (req *http.Request) (*http.Response, error){
 			body, err := io.ReadAll(req.Body)
 			if err != nil {
@@ -1160,8 +1193,7 @@ func TestFetchFetchOnce2(t *testing.T){
 		},
 	)
 	// テスト対象の関数を実行
-	f := FetchClient{}
-	pointSets, points, _, err := f.Fetch("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", []model.UserInputKey{
+	pointSets, points, _, err := f.Fetch(connectionURL, []model.UserInputKey{
 		{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
 	}, &model.FetchOption{})
 
@@ -1193,6 +1225,9 @@ func TestFetchFetchOnce2(t *testing.T){
 }
 
 func TestFetchFetchOncePointSetsBoundary(t *testing.T){
+	connectionURL := defaultConnectionURL
+	f := FetchClient{}
+
 	testCases := []struct {
 		name string
 		responseBody string
@@ -1258,11 +1293,10 @@ func TestFetchFetchOncePointSetsBoundary(t *testing.T){
 
 			// 下記URLにPOSTしたときの挙動を定義
 			responder := testutil.CustomBodyResponder(tc.responseBody)
-			httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
+			httpmock.RegisterResponder("POST", connectionURL, responder)
 
 			// テスト対象の関数を実行
-			f := FetchClient{}
-			pointSets, _, _, err := f.Fetch("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", []model.UserInputKey{
+			pointSets, _, _, err := f.Fetch(connectionURL, []model.UserInputKey{
 				{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
 			}, &model.FetchOption{})
 			assert.NoError(t, err)
@@ -1272,6 +1306,9 @@ func TestFetchFetchOncePointSetsBoundary(t *testing.T){
 }
 
 func TestFetchFetchOncePointsBoundary(t *testing.T){
+	connectionURL := defaultConnectionURL
+	f := FetchClient{}
+
 	testCases := []struct {
 		name string
 		responseBody string
@@ -1345,11 +1382,10 @@ func TestFetchFetchOncePointsBoundary(t *testing.T){
 
 			// 下記URLにPOSTしたときの挙動を定義
 			responder := testutil.CustomBodyResponder(tc.responseBody)
-			httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
+			httpmock.RegisterResponder("POST", connectionURL, responder)
 
 			// テスト対象の関数を実行
-			f := FetchClient{}
-			_, points, _, err := f.Fetch("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", []model.UserInputKey{
+			_, points, _, err := f.Fetch(connectionURL, []model.UserInputKey{
 				{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
 			}, &model.FetchOption{})
 			assert.NoError(t, err)
@@ -1359,6 +1395,9 @@ func TestFetchFetchOncePointsBoundary(t *testing.T){
 }
 
 func TestFetchNotRepeatedPointSetId(t *testing.T){
+	connectionURL := defaultConnectionURL
+	f := FetchClient{}
+
 	// httpmockの有効化
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
@@ -1378,11 +1417,10 @@ func TestFetchNotRepeatedPointSetId(t *testing.T){
 		</pointSet>
 	</body>
 	`)
-	httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
+	httpmock.RegisterResponder("POST", connectionURL, responder)
 
 	// テスト対象の関数を実行
-	f := FetchClient{}
-	pointSets, _, _, err := f.Fetch("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", []model.UserInputKey{
+	pointSets, _, _, err := f.Fetch(connectionURL, []model.UserInputKey{
 		{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
 	}, &model.FetchOption{})
 
@@ -1396,11 +1434,14 @@ func TestFetchNotRepeatedPointSetId(t *testing.T){
 }
 
 func TestFetchRepeatedPointSetId(t *testing.T){
+	connectionURL := defaultConnectionURL
+	f := FetchClient{}
+
 	// httpmockの有効化
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 
-	httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", 
+	httpmock.RegisterResponder("POST", connectionURL, 
 		func (req *http.Request) (*http.Response, error){
 			body, err := io.ReadAll(req.Body)
 			if err != nil {
@@ -1462,8 +1503,7 @@ func TestFetchRepeatedPointSetId(t *testing.T){
 		},
 	)
 	// テスト対象の関数を実行
-	f := FetchClient{}
-	pointSets, _, _, err := f.Fetch("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", []model.UserInputKey{
+	pointSets, _, _, err := f.Fetch(connectionURL, []model.UserInputKey{
 		{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
 	}, &model.FetchOption{})
 
@@ -1477,6 +1517,9 @@ func TestFetchRepeatedPointSetId(t *testing.T){
 }
 
 func TestFetchNotRepeatedPointId(t *testing.T){
+	connectionURL := defaultConnectionURL
+	f := FetchClient{}
+
 	// httpmockの有効化
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
@@ -1495,11 +1538,10 @@ func TestFetchNotRepeatedPointId(t *testing.T){
 		</point>
 	</body>
 	`)
-	httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
+	httpmock.RegisterResponder("POST", connectionURL, responder)
 
 	// テスト対象の関数を実行
-	f := FetchClient{}
-	_, points, _, err := f.Fetch("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", []model.UserInputKey{
+	_, points, _, err := f.Fetch(connectionURL, []model.UserInputKey{
 		{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
 	}, &model.FetchOption{})
 
@@ -1515,11 +1557,14 @@ func TestFetchNotRepeatedPointId(t *testing.T){
 }
 
 func TestFetchRepeatedPointId(t *testing.T){
+	connectionURL := defaultConnectionURL
+	f := FetchClient{}
+
 	// httpmockの有効化
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 
-	httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", 
+	httpmock.RegisterResponder("POST", connectionURL, 
 		func (req *http.Request) (*http.Response, error){
 			body, err := io.ReadAll(req.Body)
 			if err != nil {
@@ -1580,8 +1625,7 @@ func TestFetchRepeatedPointId(t *testing.T){
 		},
 	)
 	// テスト対象の関数を実行
-	f := FetchClient{}
-	_, points, _, err := f.Fetch("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", []model.UserInputKey{
+	_, points, _, err := f.Fetch(connectionURL, []model.UserInputKey{
 		{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
 	}, &model.FetchOption{})
 
@@ -1605,6 +1649,9 @@ func TestFetchRepeatedPointId(t *testing.T){
 }
 
 func TestFetchEmpty(t *testing.T){
+	connectionURL := defaultConnectionURL
+	f := FetchClient{}
+
 	// httpmockの有効化
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
@@ -1620,11 +1667,10 @@ func TestFetchEmpty(t *testing.T){
 	<body>
 	</body>
 	`)
-	httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
+	httpmock.RegisterResponder("POST", connectionURL, responder)
 
 	// テスト対象の関数を実行
-	f := FetchClient{}
-	pointSets, points, _, err := f.Fetch("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", []model.UserInputKey{
+	pointSets, points, _, err := f.Fetch(connectionURL, []model.UserInputKey{
 		{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
 	}, &model.FetchOption{})
 
@@ -1634,17 +1680,19 @@ func TestFetchEmpty(t *testing.T){
 }
 
 func TestFetchFetchOnce1Error(t *testing.T){
+	connectionURL := defaultConnectionURL
+	f := FetchClient{}
+
 	// mockの有効化
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 
 	// 下記URLにPOSTしたときの挙動を定義
-	httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", 
+	httpmock.RegisterResponder("POST", connectionURL, 
 		httpmock.NewErrorResponder(errors.New("mocked error")))
 
 	// テスト対象の関数を実行
-	f := FetchClient{}
-	_, _, _, err := f.Fetch("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", []model.UserInputKey{
+	_, _, _, err := f.Fetch(connectionURL, []model.UserInputKey{
 		{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
 	}, &model.FetchOption{})
 
@@ -1655,11 +1703,14 @@ func TestFetchFetchOnce1Error(t *testing.T){
 }
 
 func TestFetchFetchOnce2Error(t *testing.T){
+	connectionURL := defaultConnectionURL
+	f := FetchClient{}
+
 	// httpmockの有効化
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 
-	httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", 
+	httpmock.RegisterResponder("POST", connectionURL, 
 		func (req *http.Request) (*http.Response, error){
 			body, err := io.ReadAll(req.Body)
 			if err != nil {
@@ -1696,8 +1747,7 @@ func TestFetchFetchOnce2Error(t *testing.T){
 		},
 	)
 	// テスト対象の関数を実行
-	f := FetchClient{}
-	_, _, _, err := f.Fetch("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", []model.UserInputKey{
+	_, _, _, err := f.Fetch(connectionURL, []model.UserInputKey{
 		{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
 	}, &model.FetchOption{})
 	assert.Error(t, err)
@@ -1707,6 +1757,9 @@ func TestFetchFetchOnce2Error(t *testing.T){
 }
 
 func TestFetchFetchOnce1fiapErr(t *testing.T){
+	connectionURL := defaultConnectionURL
+	f := FetchClient{}
+
 	// httpmockの有効化
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
@@ -1717,11 +1770,10 @@ func TestFetchFetchOnce1fiapErr(t *testing.T){
 		<error type="POINT_NOT_FOUND">The requested point is not managed in this server.</error>
 	</header>
 	`)
-	httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
+	httpmock.RegisterResponder("POST", connectionURL, responder)
 
 	// テスト対象の関数を実行
-	f := FetchClient{}
-	pointSets, points, fiapErr, err := f.Fetch("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", []model.UserInputKey{
+	pointSets, points, fiapErr, err := f.Fetch(connectionURL, []model.UserInputKey{
 		{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
 	}, &model.FetchOption{})
 
@@ -1736,11 +1788,14 @@ func TestFetchFetchOnce1fiapErr(t *testing.T){
 }
 
 func TestFetchFetchOnce2FiapErr(t *testing.T){
+	connectionURL := defaultConnectionURL
+	f := FetchClient{}
+
 	// httpmockの有効化
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 
-	httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", 
+	httpmock.RegisterResponder("POST", connectionURL, 
 		func (req *http.Request) (*http.Response, error){
 			body, err := io.ReadAll(req.Body)
 			if err != nil {
@@ -1796,8 +1851,7 @@ func TestFetchFetchOnce2FiapErr(t *testing.T){
 		},
 	)
 	// テスト対象の関数を実行
-	f := FetchClient{}
-	pointSets, points, fiapErr, err := f.Fetch("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", []model.UserInputKey{
+	pointSets, points, fiapErr, err := f.Fetch(connectionURL, []model.UserInputKey{
 		{ID: "http://xxxxxxxx/tokyo/building1/Room101/"},
 	}, &model.FetchOption{})
 
@@ -1825,6 +1879,9 @@ func TestFetchFetchOnce2FiapErr(t *testing.T){
 }
 
 func TestFetchByIdsWithKeyIdBoundary(t *testing.T){
+	connectionURL := defaultConnectionURL
+	f := FetchClient{}
+
 	testcases := []struct {
 		name string
 		ids string
@@ -1893,13 +1950,12 @@ func TestFetchByIdsWithKeyIdBoundary(t *testing.T){
 			}
 
 			// 下記URLにPOSTし、かつ特定のrequest bodyを送信したときの挙動を定義
-			httpmock.RegisterMatcherResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",
+			httpmock.RegisterMatcherResponder("POST", connectionURL,
 					matcher,
 					responder,
 			)
 			// テスト対象の関数を実行
-			f := FetchClient{}
-			pointSets, points, _, _ := f.FetchByIdsWithKey("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", model.UserInputKeyNoID{}, tc.ids)
+			pointSets, points, _, _ := f.FetchByIdsWithKey(connectionURL, model.UserInputKeyNoID{}, tc.ids)
 			assert.Equal(t, expectedPointSets, pointSets)
 			assert.Equal(t, expectedPoints, points)
 		})
@@ -1907,17 +1963,19 @@ func TestFetchByIdsWithKeyIdBoundary(t *testing.T){
 }
 
 func TestFetchByIdsWithKeyMissingId(t *testing.T){
+	connectionURL := defaultConnectionURL
+	f := FetchClient{}
+
 	// httpmockの有効化
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 
 	// 下記URLにPOSTしたときの挙動を定義
-	httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", 
+	httpmock.RegisterResponder("POST", connectionURL, 
 		httpmock.NewErrorResponder(errors.New("mocked error")))
 
 	// テスト対象の関数を実行
-	f := FetchClient{}
-	_, _, _, err := f.FetchByIdsWithKey("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", model.UserInputKeyNoID{
+	_, _, _, err := f.FetchByIdsWithKey(connectionURL, model.UserInputKeyNoID{
 		Lteq: testutil.TimeToTimep(time.Date(2021, 1, 1, 0, 0, 0, 0, time.FixedZone("Asia/Tokyo", 9*60*60))),
 		Gteq: testutil.TimeToTimep(time.Date(2021, 1, 1, 0, 0, 0, 0, time.FixedZone("Asia/Tokyo", 9*60*60))),
 	}, "http://xxxxxxxx/tokyo/building1/")
@@ -1927,6 +1985,9 @@ func TestFetchByIdsWithKeyMissingId(t *testing.T){
 }
 
 func TestFetchLatestCheckHttpReqAndSuccess(t *testing.T){
+	connectionURL := defaultConnectionURL
+	f := FetchClient{}
+
 	// httpmockの有効化
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
@@ -1980,13 +2041,12 @@ func TestFetchLatestCheckHttpReqAndSuccess(t *testing.T){
 		</body>
 	`)
 	// 下記URLにPOSTし、かつ特定のrequest bodyを送信したときの挙動を定義
-	httpmock.RegisterMatcherResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",
+	httpmock.RegisterMatcherResponder("POST", connectionURL,
 			matcher,
 			responder,
 	)
 	// テスト対象の関数を実行
-	f := FetchClient{}
-	pointSets, points,_, _ := f.FetchLatest("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",
+	pointSets, points,_, _ := f.FetchLatest(connectionURL,
 	fromDate,
 	toDate,
 	ids)
@@ -1996,22 +2056,27 @@ func TestFetchLatestCheckHttpReqAndSuccess(t *testing.T){
 }
 
 func TestFetchLatestFetchByIdsWithKeyError(t *testing.T){
+	connectionURL := defaultConnectionURL
+	f := FetchClient{}
+
 	// httpmockの有効化
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 
 	responder := testutil.CustomBodyResponder("")
-	httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
+	httpmock.RegisterResponder("POST", connectionURL, responder)
 
 	// テスト対象の関数を実行
-	f := FetchClient{}
-	_, _, _, err := f.FetchLatest("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", nil, nil)
+	_, _, _, err := f.FetchLatest(connectionURL, nil, nil)
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "FetchByIdsWithKey error")
 }
 
 func TestFetchOldestCheckHttpReqAndSuccess(t *testing.T){
+	connectionURL := defaultConnectionURL
+	f := FetchClient{}
+
 	// httpmockの有効化
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
@@ -2065,13 +2130,12 @@ func TestFetchOldestCheckHttpReqAndSuccess(t *testing.T){
 		</body>
 	`)
 	// 下記URLにPOSTし、かつ特定のrequest bodyを送信したときの挙動を定義
-	httpmock.RegisterMatcherResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",
+	httpmock.RegisterMatcherResponder("POST", connectionURL,
 			matcher,
 			responder,
 	)
 	// テスト対象の関数を実行
-	f := FetchClient{}
-	pointSets, points, _, _ := f.FetchOldest("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",
+	pointSets, points, _, _ := f.FetchOldest(connectionURL,
 	fromDate,
 	toDate,
 	ids)
@@ -2081,22 +2145,27 @@ func TestFetchOldestCheckHttpReqAndSuccess(t *testing.T){
 }
 
 func TestFetchOldestFetchByIdsWithKeyError(t *testing.T){
+	connectionURL := defaultConnectionURL
+	f := FetchClient{}
+
 	// httpmockの有効化
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 
 	responder := testutil.CustomBodyResponder("")
-	httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
+	httpmock.RegisterResponder("POST",connectionURL, responder)
 
 	// テスト対象の関数を実行
-	f := FetchClient{}
-	_, _, _, err := f.FetchOldest("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",nil,nil)
+	_, _, _, err := f.FetchOldest(connectionURL ,nil ,nil)
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "FetchByIdsWithKey error")
 }
 
 func TestFetchDateRangeCheckHttpReqAndSuccess(t *testing.T){
+	connectionURL := defaultConnectionURL
+	f := FetchClient{}
+
 	// httpmockの有効化
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
@@ -2150,13 +2219,12 @@ func TestFetchDateRangeCheckHttpReqAndSuccess(t *testing.T){
 		</body>
 	`)
 	// 下記URLにPOSTし、かつ特定のrequest bodyを送信したときの挙動を定義
-	httpmock.RegisterMatcherResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",
+	httpmock.RegisterMatcherResponder("POST", connectionURL,
 			matcher,
 			responder,
 	)
 	// テスト対象の関数を実行
-	f := FetchClient{}
-	pointSets, points,_, _ := f.FetchOldest("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",
+	pointSets, points,_, _ := f.FetchOldest(connectionURL,
 	fromDate,
 	toDate,
 	ids)
@@ -2166,16 +2234,18 @@ func TestFetchDateRangeCheckHttpReqAndSuccess(t *testing.T){
 }
 
 func TestFetchDateRangeFetchByIdsWithKeyError(t *testing.T){
+	connectionURL := defaultConnectionURL
+	f := FetchClient{}
+
 	// httpmockの有効化
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 
 	responder := testutil.CustomBodyResponder("")
-	httpmock.RegisterResponder("POST", "http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage", responder)
+	httpmock.RegisterResponder("POST", connectionURL, responder)
 
 	// テスト対象の関数を実行
-	f := FetchClient{}
-	_, _, _, err := f.FetchDateRange("http://iot.info.nara-k.ac.jp/axis2/services/FIAPStorage",nil,nil)
+	_, _, _, err := f.FetchDateRange(connectionURL, nil, nil)
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "FetchByIdsWithKey error")
