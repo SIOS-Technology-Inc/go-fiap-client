@@ -107,7 +107,7 @@ func TestFetchOncePointValueBoundary(t *testing.T) {
 			`, // pointに0個のvalueを含むレスポンス
 			expectedValueCount:       0,
 			expectedPoints: map[string][]model.Value{
-				"http://xxxxxxxx/tokyo/building1/Room101/": nil,
+				"http://xxxxxxxx/tokyo/building1/Room101/": {},
 			},
 		},
 		{
