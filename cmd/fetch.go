@@ -13,12 +13,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type cmdFetchFunc func(string, *time.Time, *time.Time, ...string) (map[string](model.ProcessedPointSet), map[string]([]model.Value), *model.Error, error)
-
 var (
-	fetchLatest    cmdFetchFunc = fiap.FetchLatest
-	fetchOldest    cmdFetchFunc = fiap.FetchOldest
-	fetchDateRange cmdFetchFunc = fiap.FetchDateRange
+	fetchClient fiap.Fetcher = &fiap.FetchClient{}
 
 	createFile func(string) (io.WriteCloser, error) = func(name string) (io.WriteCloser, error) {
 		return os.Create(name)
@@ -156,7 +152,7 @@ func executeFetch(connectionURL string, id string, fromDate, untilDate *time.Tim
 
 	switch selectType {
 	case model.SelectTypeMaximum:
-		if pointSets, points, fiapErr, err := fetchLatest(connectionURL, fromDate, untilDate, id); err == nil {
+		if pointSets, points, fiapErr, err := fetchClient.FetchLatest(connectionURL, fromDate, untilDate, id); err == nil {
 			result.PointSets = pointSets
 			result.Points = points
 			if fiapErr != nil {
@@ -166,7 +162,7 @@ func executeFetch(connectionURL string, id string, fromDate, untilDate *time.Tim
 			return nil, nil, errors.Wrapf(err, "failed to fetch from %s", connectionURL)
 		}
 	case model.SelectTypeMinimum:
-		if pointSets, points, fiapErr, err := fetchOldest(connectionURL, fromDate, untilDate, id); err == nil {
+		if pointSets, points, fiapErr, err := fetchClient.FetchOldest(connectionURL, fromDate, untilDate, id); err == nil {
 			result.PointSets = pointSets
 			result.Points = points
 			if fiapErr != nil {
@@ -176,7 +172,7 @@ func executeFetch(connectionURL string, id string, fromDate, untilDate *time.Tim
 			return nil, nil, errors.Wrapf(err, "failed to fetch from %s", connectionURL)
 		}
 	case model.SelectTypeNone:
-		if pointSets, points, fiapErr, err := fetchDateRange(connectionURL, fromDate, untilDate, id); err == nil {
+		if pointSets, points, fiapErr, err := fetchClient.FetchDateRange(connectionURL, fromDate, untilDate, id); err == nil {
 			result.PointSets = pointSets
 			result.Points = points
 			if fiapErr != nil {

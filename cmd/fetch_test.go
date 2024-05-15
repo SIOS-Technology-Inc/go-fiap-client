@@ -12,12 +12,12 @@ import (
 )
 
 var (
-	originalFetchLatest    = fetchLatest
-	originalFetchOldest    = fetchLatest
-	originalFetchDateRange = fetchDateRange
-	originalCreateFile     = createFile
-	originalMarshalJSON    = marshalJSON
-	originalArgs           = os.Args
+	originalFetchClient = fetchClient
+	originalCreateFile  = createFile
+	originalMarshalJSON = marshalJSON
+	originalArgs        = os.Args
+
+	mockClient = &mockFetchClient{actualArguments: &fetchFuncArguments{}}
 
 	mockFailLatest, mockFailOldest, mockFailDateRange        bool
 	mockFailCreateFile, mockFailWriteFile, mockFailCloseFile bool
@@ -28,15 +28,66 @@ var (
 
 	actualOut        = &strings.Builder{}
 	actualErrOut     = &strings.Builder{}
-	actualArguments  = mockFuncArguments{}
 	mockFileInstance = &mockFile{}
 )
 
-type mockFuncArguments struct {
+type fetchFuncArguments struct {
 	connectionURL string
 	fromDate      *time.Time
 	untilDate     *time.Time
 	ids           []string
+}
+
+type mockFetchClient struct {
+	actualArguments *fetchFuncArguments
+}
+
+func (f *mockFetchClient) Fetch(connectionURL string, keys []model.UserInputKey, option *model.FetchOption) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), fiapErr *model.Error, err error) {
+	return nil, nil, nil, errors.New("unimplemented")
+}
+
+func (f *mockFetchClient) FetchOnce(connectionURL string, keys []model.UserInputKey, option *model.FetchOnceOption) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), cursor string, fiapErr *model.Error, err error) {
+	return nil, nil, "", nil, errors.New("unimplemented")
+}
+
+func (f *mockFetchClient) FetchByIdsWithKey(connectionURL string, key model.UserInputKeyNoID, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), fiapErr *model.Error, err error) {
+	return nil, nil, nil, errors.New("unimplemented")
+}
+
+func (f *mockFetchClient) FetchLatest(connectionURL string, fromDate *time.Time, untilDate *time.Time, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), fiapErr *model.Error, err error) {
+	if mockFailLatest {
+		return nil, nil, nil, errors.New("test FetchLatest error")
+	} else {
+		f.actualArguments.connectionURL = connectionURL
+		f.actualArguments.fromDate = fromDate
+		f.actualArguments.untilDate = untilDate
+		f.actualArguments.ids = ids
+		return mockResultPointSet, mockResultPoint, mockResultFiapError, nil
+	}
+}
+
+func (f *mockFetchClient) FetchOldest(connectionURL string, fromDate *time.Time, untilDate *time.Time, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), fiapErr *model.Error, err error) {
+	if mockFailOldest {
+		return nil, nil, nil, errors.New("test FetchOldest error")
+	} else {
+		f.actualArguments.connectionURL = connectionURL
+		f.actualArguments.fromDate = fromDate
+		f.actualArguments.untilDate = untilDate
+		f.actualArguments.ids = ids
+		return mockResultPointSet, mockResultPoint, mockResultFiapError, nil
+	}
+}
+
+func (f *mockFetchClient) FetchDateRange(connectionURL string, fromDate *time.Time, untilDate *time.Time, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), fiapErr *model.Error, err error) {
+	if mockFailDateRange {
+		return nil, nil, nil, errors.New("test FetchDateRange error")
+	} else {
+		f.actualArguments.connectionURL = connectionURL
+		f.actualArguments.fromDate = fromDate
+		f.actualArguments.untilDate = untilDate
+		f.actualArguments.ids = ids
+		return mockResultPointSet, mockResultPoint, mockResultFiapError, nil
+	}
 }
 
 type mockFile struct {
@@ -49,50 +100,14 @@ type mockFile struct {
 func resetActualValues() {
 	actualOut.Reset()
 	actualErrOut.Reset()
-	actualArguments.connectionURL = ""
-	actualArguments.fromDate = nil
-	actualArguments.untilDate = nil
-	actualArguments.ids = nil
+	mockClient.actualArguments.connectionURL = ""
+	mockClient.actualArguments.fromDate = nil
+	mockClient.actualArguments.untilDate = nil
+	mockClient.actualArguments.ids = nil
 	mockFileInstance.fileName = ""
 	mockFileInstance.opened = false
 	mockFileInstance.closed = false
 	mockFileInstance.builder.Reset()
-}
-
-func mockFetchLatest(connectionURL string, fromDate *time.Time, untilDate *time.Time, ids ...string) (map[string](model.ProcessedPointSet), map[string]([]model.Value), *model.Error, error) {
-	if mockFailLatest {
-		return nil, nil, nil, errors.New("test FetchLatest error")
-	} else {
-		actualArguments.connectionURL = connectionURL
-		actualArguments.fromDate = fromDate
-		actualArguments.untilDate = untilDate
-		actualArguments.ids = ids
-		return mockResultPointSet, mockResultPoint, mockResultFiapError, nil
-	}
-}
-
-func mockFetchOldest(connectionURL string, fromDate *time.Time, untilDate *time.Time, ids ...string) (map[string](model.ProcessedPointSet), map[string]([]model.Value), *model.Error, error) {
-	if mockFailOldest {
-		return nil, nil, nil, errors.New("test FetchOldest error")
-	} else {
-		actualArguments.connectionURL = connectionURL
-		actualArguments.fromDate = fromDate
-		actualArguments.untilDate = untilDate
-		actualArguments.ids = ids
-		return mockResultPointSet, mockResultPoint, mockResultFiapError, nil
-	}
-}
-
-func mockFetchDateRange(connectionURL string, fromDate *time.Time, untilDate *time.Time, ids ...string) (map[string](model.ProcessedPointSet), map[string]([]model.Value), *model.Error, error) {
-	if mockFailDateRange {
-		return nil, nil, nil, errors.New("test FetchDateRange error")
-	} else {
-		actualArguments.connectionURL = connectionURL
-		actualArguments.fromDate = fromDate
-		actualArguments.untilDate = untilDate
-		actualArguments.ids = ids
-		return mockResultPointSet, mockResultPoint, mockResultFiapError, nil
-	}
 }
 
 func mockCreateFile(name string) (io.WriteCloser, error) {
@@ -129,16 +144,12 @@ func marshalJSONAlwayseFailed(v any) ([]byte, error) {
 }
 
 func TestMain(m *testing.M) {
-	fetchLatest = mockFetchLatest
-	fetchOldest = mockFetchOldest
-	fetchDateRange = mockFetchDateRange
+	fetchClient = mockClient
 	createFile = mockCreateFile
 
 	m.Run()
 
-	fetchLatest = originalFetchLatest
-	fetchOldest = originalFetchOldest
-	fetchDateRange = originalFetchDateRange
+	fetchClient = originalFetchClient
 	createFile = originalCreateFile
 	marshalJSON = originalMarshalJSON
 	os.Args = originalArgs
@@ -182,21 +193,21 @@ func TestFetchCommandRun(t *testing.T) {
 					if actualErrOut.String() != expectedErrOut {
 						t.Error("assertion error of stderr")
 					}
-					if actualArguments.connectionURL != "http://test.url" {
+					if mockClient.actualArguments.connectionURL != "http://test.url" {
 						t.Error("assertion error of url")
 					}
-					if actualArguments.fromDate != nil {
+					if mockClient.actualArguments.fromDate != nil {
 						t.Error("assertion error of from date")
 					}
-					if actualArguments.untilDate != nil {
+					if mockClient.actualArguments.untilDate != nil {
 						t.Error("assertion error of until date")
 					}
-					if actualArguments.ids == nil {
+					if mockClient.actualArguments.ids == nil {
 						t.Error("assertion error of id")
 					} else {
-						if len(actualArguments.ids) != 1 {
+						if len(mockClient.actualArguments.ids) != 1 {
 							t.Error("assertion error of id")
-						} else if actualArguments.ids[0] != "test_id" {
+						} else if mockClient.actualArguments.ids[0] != "test_id" {
 							t.Error("assertion error of id")
 						}
 					}
@@ -215,21 +226,21 @@ func TestFetchCommandRun(t *testing.T) {
 						if actualErrOut.String() != expectedErrOut {
 							t.Error("assertion error of stderr")
 						}
-						if actualArguments.connectionURL != "http://test.url" {
+						if mockClient.actualArguments.connectionURL != "http://test.url" {
 							t.Error("assertion error of url")
 						}
-						if actualArguments.fromDate != nil {
+						if mockClient.actualArguments.fromDate != nil {
 							t.Error("assertion error of from date")
 						}
-						if actualArguments.untilDate != nil {
+						if mockClient.actualArguments.untilDate != nil {
 							t.Error("assertion error of until date")
 						}
-						if actualArguments.ids == nil {
+						if mockClient.actualArguments.ids == nil {
 							t.Error("assertion error of id")
 						} else {
-							if len(actualArguments.ids) != 1 {
+							if len(mockClient.actualArguments.ids) != 1 {
 								t.Error("assertion error of id")
-							} else if actualArguments.ids[0] != "test_id" {
+							} else if mockClient.actualArguments.ids[0] != "test_id" {
 								t.Error("assertion error of id")
 							}
 						}
@@ -247,21 +258,21 @@ func TestFetchCommandRun(t *testing.T) {
 						if actualErrOut.String() != expectedErrOut {
 							t.Error("assertion error of stderr")
 						}
-						if actualArguments.connectionURL != "http://test.url" {
+						if mockClient.actualArguments.connectionURL != "http://test.url" {
 							t.Error("assertion error of url")
 						}
-						if actualArguments.fromDate != nil {
+						if mockClient.actualArguments.fromDate != nil {
 							t.Error("assertion error of from date")
 						}
-						if actualArguments.untilDate != nil {
+						if mockClient.actualArguments.untilDate != nil {
 							t.Error("assertion error of until date")
 						}
-						if actualArguments.ids == nil {
+						if mockClient.actualArguments.ids == nil {
 							t.Error("assertion error of id")
 						} else {
-							if len(actualArguments.ids) != 1 {
+							if len(mockClient.actualArguments.ids) != 1 {
 								t.Error("assertion error of id")
-							} else if actualArguments.ids[0] != "test_id" {
+							} else if mockClient.actualArguments.ids[0] != "test_id" {
 								t.Error("assertion error of id")
 							}
 						}
@@ -289,21 +300,21 @@ until: <nil>
 						if actualErrOut.String() != expectedErrOut {
 							t.Error("assertion error of stderr")
 						}
-						if actualArguments.connectionURL != "http://test.url" {
+						if mockClient.actualArguments.connectionURL != "http://test.url" {
 							t.Error("assertion error of url")
 						}
-						if actualArguments.fromDate != nil {
+						if mockClient.actualArguments.fromDate != nil {
 							t.Error("assertion error of from date")
 						}
-						if actualArguments.untilDate != nil {
+						if mockClient.actualArguments.untilDate != nil {
 							t.Error("assertion error of until date")
 						}
-						if actualArguments.ids == nil {
+						if mockClient.actualArguments.ids == nil {
 							t.Error("assertion error of id")
 						} else {
-							if len(actualArguments.ids) != 1 {
+							if len(mockClient.actualArguments.ids) != 1 {
 								t.Error("assertion error of id")
-							} else if actualArguments.ids[0] != "test_id" {
+							} else if mockClient.actualArguments.ids[0] != "test_id" {
 								t.Error("assertion error of id")
 							}
 						}
@@ -329,21 +340,21 @@ until: <nil>
 						if actualErrOut.String() != expectedErrOut {
 							t.Error("assertion error of stderr")
 						}
-						if actualArguments.connectionURL != "http://test.url" {
+						if mockClient.actualArguments.connectionURL != "http://test.url" {
 							t.Error("assertion error of url")
 						}
-						if actualArguments.fromDate != nil {
+						if mockClient.actualArguments.fromDate != nil {
 							t.Error("assertion error of from date")
 						}
-						if actualArguments.untilDate != nil {
+						if mockClient.actualArguments.untilDate != nil {
 							t.Error("assertion error of until date")
 						}
-						if actualArguments.ids == nil {
+						if mockClient.actualArguments.ids == nil {
 							t.Error("assertion error of id")
 						} else {
-							if len(actualArguments.ids) != 1 {
+							if len(mockClient.actualArguments.ids) != 1 {
 								t.Error("assertion error of id")
-							} else if actualArguments.ids[0] != "test_id" {
+							} else if mockClient.actualArguments.ids[0] != "test_id" {
 								t.Error("assertion error of id")
 							}
 						}
@@ -363,23 +374,23 @@ until: <nil>
 					if actualErrOut.String() != expectedErrOut {
 						t.Error("assertion error of stderr")
 					}
-					if actualArguments.connectionURL != "http://test.url" {
+					if mockClient.actualArguments.connectionURL != "http://test.url" {
 						t.Error("assertion error of url")
 					}
-					if actualArguments.fromDate == nil {
+					if mockClient.actualArguments.fromDate == nil {
 						t.Error("assertion error of from date")
-					} else if !actualArguments.fromDate.Equal(expectedFrom) {
+					} else if !mockClient.actualArguments.fromDate.Equal(expectedFrom) {
 						t.Error("assertion error of from date")
 					}
-					if actualArguments.untilDate != nil {
+					if mockClient.actualArguments.untilDate != nil {
 						t.Error("assertion error of until date")
 					}
-					if actualArguments.ids == nil {
+					if mockClient.actualArguments.ids == nil {
 						t.Error("assertion error of id")
 					} else {
-						if len(actualArguments.ids) != 1 {
+						if len(mockClient.actualArguments.ids) != 1 {
 							t.Error("assertion error of id")
-						} else if actualArguments.ids[0] != "test_id" {
+						} else if mockClient.actualArguments.ids[0] != "test_id" {
 							t.Error("assertion error of id")
 						}
 					}
@@ -398,23 +409,23 @@ until: <nil>
 					if actualErrOut.String() != expectedErrOut {
 						t.Error("assertion error of stderr")
 					}
-					if actualArguments.connectionURL != "http://test.url" {
+					if mockClient.actualArguments.connectionURL != "http://test.url" {
 						t.Error("assertion error of url")
 					}
-					if actualArguments.fromDate != nil {
+					if mockClient.actualArguments.fromDate != nil {
 						t.Error("assertion error of from date")
 					}
-					if actualArguments.untilDate == nil {
+					if mockClient.actualArguments.untilDate == nil {
 						t.Error("assertion error of until date")
-					} else if !actualArguments.untilDate.Equal(expectedUntil) {
+					} else if !mockClient.actualArguments.untilDate.Equal(expectedUntil) {
 						t.Error("assertion error of until date")
 					}
-					if actualArguments.ids == nil {
+					if mockClient.actualArguments.ids == nil {
 						t.Error("assertion error of id")
 					} else {
-						if len(actualArguments.ids) != 1 {
+						if len(mockClient.actualArguments.ids) != 1 {
 							t.Error("assertion error of id")
-						} else if actualArguments.ids[0] != "test_id" {
+						} else if mockClient.actualArguments.ids[0] != "test_id" {
 							t.Error("assertion error of id")
 						}
 					}
@@ -436,21 +447,21 @@ until: <nil>
 					if actualErrOut.String() != expectedErrOut {
 						t.Error("assertion error of stderr")
 					}
-					if actualArguments.connectionURL != "http://test.url" {
+					if mockClient.actualArguments.connectionURL != "http://test.url" {
 						t.Error("assertion error of url")
 					}
-					if actualArguments.fromDate != nil {
+					if mockClient.actualArguments.fromDate != nil {
 						t.Error("assertion error of from date")
 					}
-					if actualArguments.untilDate != nil {
+					if mockClient.actualArguments.untilDate != nil {
 						t.Error("assertion error of until date")
 					}
-					if actualArguments.ids == nil {
+					if mockClient.actualArguments.ids == nil {
 						t.Error("assertion error of id")
 					} else {
-						if len(actualArguments.ids) != 1 {
+						if len(mockClient.actualArguments.ids) != 1 {
 							t.Error("assertion error of id")
-						} else if actualArguments.ids[0] != "test_id" {
+						} else if mockClient.actualArguments.ids[0] != "test_id" {
 							t.Error("assertion error of id")
 						}
 					}
@@ -468,21 +479,21 @@ until: <nil>
 					if actualErrOut.String() != expectedErrOut {
 						t.Error("assertion error of stderr")
 					}
-					if actualArguments.connectionURL != "http://test.url" {
+					if mockClient.actualArguments.connectionURL != "http://test.url" {
 						t.Error("assertion error of url")
 					}
-					if actualArguments.fromDate != nil {
+					if mockClient.actualArguments.fromDate != nil {
 						t.Error("assertion error of from date")
 					}
-					if actualArguments.untilDate != nil {
+					if mockClient.actualArguments.untilDate != nil {
 						t.Error("assertion error of until date")
 					}
-					if actualArguments.ids == nil {
+					if mockClient.actualArguments.ids == nil {
 						t.Error("assertion error of id")
 					} else {
-						if len(actualArguments.ids) != 1 {
+						if len(mockClient.actualArguments.ids) != 1 {
 							t.Error("assertion error of id")
-						} else if actualArguments.ids[0] != "test_id" {
+						} else if mockClient.actualArguments.ids[0] != "test_id" {
 							t.Error("assertion error of id")
 						}
 					}
@@ -505,21 +516,21 @@ until: <nil>
 					if actualErrOut.String() != expectedErrOut {
 						t.Error("assertion error of stderr")
 					}
-					if actualArguments.connectionURL != "http://test.url" {
+					if mockClient.actualArguments.connectionURL != "http://test.url" {
 						t.Error("assertion error of url")
 					}
-					if actualArguments.fromDate != nil {
+					if mockClient.actualArguments.fromDate != nil {
 						t.Error("assertion error of from date")
 					}
-					if actualArguments.untilDate != nil {
+					if mockClient.actualArguments.untilDate != nil {
 						t.Error("assertion error of until date")
 					}
-					if actualArguments.ids == nil {
+					if mockClient.actualArguments.ids == nil {
 						t.Error("assertion error of id")
 					} else {
-						if len(actualArguments.ids) != 1 {
+						if len(mockClient.actualArguments.ids) != 1 {
 							t.Error("assertion error of id")
-						} else if actualArguments.ids[0] != "test_id" {
+						} else if mockClient.actualArguments.ids[0] != "test_id" {
 							t.Error("assertion error of id")
 						}
 					}
@@ -537,21 +548,21 @@ until: <nil>
 					if actualErrOut.String() != expectedErrOut {
 						t.Error("assertion error of stderr")
 					}
-					if actualArguments.connectionURL != "http://test.url" {
+					if mockClient.actualArguments.connectionURL != "http://test.url" {
 						t.Error("assertion error of url")
 					}
-					if actualArguments.fromDate != nil {
+					if mockClient.actualArguments.fromDate != nil {
 						t.Error("assertion error of from date")
 					}
-					if actualArguments.untilDate != nil {
+					if mockClient.actualArguments.untilDate != nil {
 						t.Error("assertion error of until date")
 					}
-					if actualArguments.ids == nil {
+					if mockClient.actualArguments.ids == nil {
 						t.Error("assertion error of id")
 					} else {
-						if len(actualArguments.ids) != 1 {
+						if len(mockClient.actualArguments.ids) != 1 {
 							t.Error("assertion error of id")
-						} else if actualArguments.ids[0] != "test_id" {
+						} else if mockClient.actualArguments.ids[0] != "test_id" {
 							t.Error("assertion error of id")
 						}
 					}
@@ -581,21 +592,21 @@ until: <nil>
 					if actualErrOut.String() != expectedErrOut {
 						t.Error("assertion error of stderr")
 					}
-					if actualArguments.connectionURL != "http://test.url" {
+					if mockClient.actualArguments.connectionURL != "http://test.url" {
 						t.Error("assertion error of url")
 					}
-					if actualArguments.fromDate != nil {
+					if mockClient.actualArguments.fromDate != nil {
 						t.Error("assertion error of from date")
 					}
-					if actualArguments.untilDate != nil {
+					if mockClient.actualArguments.untilDate != nil {
 						t.Error("assertion error of until date")
 					}
-					if actualArguments.ids == nil {
+					if mockClient.actualArguments.ids == nil {
 						t.Error("assertion error of id")
 					} else {
-						if len(actualArguments.ids) != 1 {
+						if len(mockClient.actualArguments.ids) != 1 {
 							t.Error("assertion error of id")
-						} else if actualArguments.ids[0] != "test_id" {
+						} else if mockClient.actualArguments.ids[0] != "test_id" {
 							t.Error("assertion error of id")
 						}
 					}
@@ -625,21 +636,21 @@ until: <nil>
 					if actualErrOut.String() != expectedErrOut {
 						t.Error("assertion error of stderr")
 					}
-					if actualArguments.connectionURL != "http://test.url" {
+					if mockClient.actualArguments.connectionURL != "http://test.url" {
 						t.Error("assertion error of url")
 					}
-					if actualArguments.fromDate != nil {
+					if mockClient.actualArguments.fromDate != nil {
 						t.Error("assertion error of from date")
 					}
-					if actualArguments.untilDate != nil {
+					if mockClient.actualArguments.untilDate != nil {
 						t.Error("assertion error of until date")
 					}
-					if actualArguments.ids == nil {
+					if mockClient.actualArguments.ids == nil {
 						t.Error("assertion error of id")
 					} else {
-						if len(actualArguments.ids) != 1 {
+						if len(mockClient.actualArguments.ids) != 1 {
 							t.Error("assertion error of id")
-						} else if actualArguments.ids[0] != "test_id" {
+						} else if mockClient.actualArguments.ids[0] != "test_id" {
 							t.Error("assertion error of id")
 						}
 					}
@@ -681,25 +692,25 @@ until: 2012-12-31 23:59:59 +0900 +0900
 					if actualErrOut.String() != expectedErrOut {
 						t.Error("assertion error of stderr")
 					}
-					if actualArguments.connectionURL != "http://test.url" {
+					if mockClient.actualArguments.connectionURL != "http://test.url" {
 						t.Error("assertion error of url")
 					}
-					if actualArguments.fromDate == nil {
+					if mockClient.actualArguments.fromDate == nil {
 						t.Error("assertion error of from date")
-					} else if !actualArguments.fromDate.Equal(expectedFrom) {
+					} else if !mockClient.actualArguments.fromDate.Equal(expectedFrom) {
 						t.Error("assertion error of from date")
 					}
-					if actualArguments.untilDate == nil {
+					if mockClient.actualArguments.untilDate == nil {
 						t.Error("assertion error of until date")
-					} else if !actualArguments.untilDate.Equal(expectedUntil) {
+					} else if !mockClient.actualArguments.untilDate.Equal(expectedUntil) {
 						t.Error("assertion error of until date")
 					}
-					if actualArguments.ids == nil {
+					if mockClient.actualArguments.ids == nil {
 						t.Error("assertion error of id")
 					} else {
-						if len(actualArguments.ids) != 1 {
+						if len(mockClient.actualArguments.ids) != 1 {
 							t.Error("assertion error of id")
-						} else if actualArguments.ids[0] != "test_id" {
+						} else if mockClient.actualArguments.ids[0] != "test_id" {
 							t.Error("assertion error of id")
 						}
 					}
@@ -739,25 +750,25 @@ until: 2012-12-31 23:59:59 +0900 +0900
 					if actualErrOut.String() != expectedErrOut {
 						t.Error("assertion error of stderr")
 					}
-					if actualArguments.connectionURL != "http://test.url" {
+					if mockClient.actualArguments.connectionURL != "http://test.url" {
 						t.Error("assertion error of url")
 					}
-					if actualArguments.fromDate == nil {
+					if mockClient.actualArguments.fromDate == nil {
 						t.Error("assertion error of from date")
-					} else if !actualArguments.fromDate.Equal(expectedFrom) {
+					} else if !mockClient.actualArguments.fromDate.Equal(expectedFrom) {
 						t.Error("assertion error of from date")
 					}
-					if actualArguments.untilDate == nil {
+					if mockClient.actualArguments.untilDate == nil {
 						t.Error("assertion error of until date")
-					} else if !actualArguments.untilDate.Equal(expectedUntil) {
+					} else if !mockClient.actualArguments.untilDate.Equal(expectedUntil) {
 						t.Error("assertion error of until date")
 					}
-					if actualArguments.ids == nil {
+					if mockClient.actualArguments.ids == nil {
 						t.Error("assertion error of id")
 					} else {
-						if len(actualArguments.ids) != 1 {
+						if len(mockClient.actualArguments.ids) != 1 {
 							t.Error("assertion error of id")
-						} else if actualArguments.ids[0] != "test_id" {
+						} else if mockClient.actualArguments.ids[0] != "test_id" {
 							t.Error("assertion error of id")
 						}
 					}
@@ -797,25 +808,25 @@ until: 2012-12-31 23:59:59 +0900 +0900
 					if actualErrOut.String() != expectedErrOut {
 						t.Error("assertion error of stderr")
 					}
-					if actualArguments.connectionURL != "http://test.url" {
+					if mockClient.actualArguments.connectionURL != "http://test.url" {
 						t.Error("assertion error of url")
 					}
-					if actualArguments.fromDate == nil {
+					if mockClient.actualArguments.fromDate == nil {
 						t.Error("assertion error of from date")
-					} else if !actualArguments.fromDate.Equal(expectedFrom) {
+					} else if !mockClient.actualArguments.fromDate.Equal(expectedFrom) {
 						t.Error("assertion error of from date")
 					}
-					if actualArguments.untilDate == nil {
+					if mockClient.actualArguments.untilDate == nil {
 						t.Error("assertion error of until date")
-					} else if !actualArguments.untilDate.Equal(expectedUntil) {
+					} else if !mockClient.actualArguments.untilDate.Equal(expectedUntil) {
 						t.Error("assertion error of until date")
 					}
-					if actualArguments.ids == nil {
+					if mockClient.actualArguments.ids == nil {
 						t.Error("assertion error of id")
 					} else {
-						if len(actualArguments.ids) != 1 {
+						if len(mockClient.actualArguments.ids) != 1 {
 							t.Error("assertion error of id")
-						} else if actualArguments.ids[0] != "test_id" {
+						} else if mockClient.actualArguments.ids[0] != "test_id" {
 							t.Error("assertion error of id")
 						}
 					}
@@ -1310,21 +1321,21 @@ too few arguments
 				if actualErrOut.String() != expectedErrOut {
 					t.Error("assertion error of stderr")
 				}
-				if actualArguments.connectionURL != "http://test.url" {
+				if mockClient.actualArguments.connectionURL != "http://test.url" {
 					t.Error("assertion error of url")
 				}
-				if actualArguments.fromDate != nil {
+				if mockClient.actualArguments.fromDate != nil {
 					t.Error("assertion error of from date")
 				}
-				if actualArguments.untilDate != nil {
+				if mockClient.actualArguments.untilDate != nil {
 					t.Error("assertion error of until date")
 				}
-				if actualArguments.ids == nil {
+				if mockClient.actualArguments.ids == nil {
 					t.Error("assertion error of id")
 				} else {
-					if len(actualArguments.ids) != 1 {
+					if len(mockClient.actualArguments.ids) != 1 {
 						t.Error("assertion error of id")
-					} else if actualArguments.ids[0] != "test_id" {
+					} else if mockClient.actualArguments.ids[0] != "test_id" {
 						t.Error("assertion error of id")
 					}
 				}
@@ -1358,21 +1369,21 @@ too few arguments
 				if actualErrOut.String() != expectedErrOut {
 					t.Error("assertion error of stderr")
 				}
-				if actualArguments.connectionURL != "http://test.url" {
+				if mockClient.actualArguments.connectionURL != "http://test.url" {
 					t.Error("assertion error of url")
 				}
-				if actualArguments.fromDate != nil {
+				if mockClient.actualArguments.fromDate != nil {
 					t.Error("assertion error of from date")
 				}
-				if actualArguments.untilDate != nil {
+				if mockClient.actualArguments.untilDate != nil {
 					t.Error("assertion error of until date")
 				}
-				if actualArguments.ids == nil {
+				if mockClient.actualArguments.ids == nil {
 					t.Error("assertion error of id")
 				} else {
-					if len(actualArguments.ids) != 1 {
+					if len(mockClient.actualArguments.ids) != 1 {
 						t.Error("assertion error of id")
-					} else if actualArguments.ids[0] != "test_id" {
+					} else if mockClient.actualArguments.ids[0] != "test_id" {
 						t.Error("assertion error of id")
 					}
 				}
@@ -1406,21 +1417,21 @@ too few arguments
 				if actualErrOut.String() != expectedErrOut {
 					t.Error("assertion error of stderr")
 				}
-				if actualArguments.connectionURL != "http://test.url" {
+				if mockClient.actualArguments.connectionURL != "http://test.url" {
 					t.Error("assertion error of url")
 				}
-				if actualArguments.fromDate != nil {
+				if mockClient.actualArguments.fromDate != nil {
 					t.Error("assertion error of from date")
 				}
-				if actualArguments.untilDate != nil {
+				if mockClient.actualArguments.untilDate != nil {
 					t.Error("assertion error of until date")
 				}
-				if actualArguments.ids == nil {
+				if mockClient.actualArguments.ids == nil {
 					t.Error("assertion error of id")
 				} else {
-					if len(actualArguments.ids) != 1 {
+					if len(mockClient.actualArguments.ids) != 1 {
 						t.Error("assertion error of id")
-					} else if actualArguments.ids[0] != "test_id" {
+					} else if mockClient.actualArguments.ids[0] != "test_id" {
 						t.Error("assertion error of id")
 					}
 				}
@@ -1469,21 +1480,21 @@ too few arguments
 			if actualErrOut.String() != expectedErrOut {
 				t.Error("assertion error of stderr")
 			}
-			if actualArguments.connectionURL != "http://test.url" {
+			if mockClient.actualArguments.connectionURL != "http://test.url" {
 				t.Error("assertion error of url")
 			}
-			if actualArguments.fromDate != nil {
+			if mockClient.actualArguments.fromDate != nil {
 				t.Error("assertion error of from date")
 			}
-			if actualArguments.untilDate != nil {
+			if mockClient.actualArguments.untilDate != nil {
 				t.Error("assertion error of until date")
 			}
-			if actualArguments.ids == nil {
+			if mockClient.actualArguments.ids == nil {
 				t.Error("assertion error of id")
 			} else {
-				if len(actualArguments.ids) != 1 {
+				if len(mockClient.actualArguments.ids) != 1 {
 					t.Error("assertion error of id")
-				} else if actualArguments.ids[0] != "test_id" {
+				} else if mockClient.actualArguments.ids[0] != "test_id" {
 					t.Error("assertion error of id")
 				}
 			}
@@ -1531,21 +1542,21 @@ too few arguments
 			if actualErrOut.String() != expectedErrOut {
 				t.Error("assertion error of stderr")
 			}
-			if actualArguments.connectionURL != "http://test.url" {
+			if mockClient.actualArguments.connectionURL != "http://test.url" {
 				t.Error("assertion error of url")
 			}
-			if actualArguments.fromDate != nil {
+			if mockClient.actualArguments.fromDate != nil {
 				t.Error("assertion error of from date")
 			}
-			if actualArguments.untilDate != nil {
+			if mockClient.actualArguments.untilDate != nil {
 				t.Error("assertion error of until date")
 			}
-			if actualArguments.ids == nil {
+			if mockClient.actualArguments.ids == nil {
 				t.Error("assertion error of id")
 			} else {
-				if len(actualArguments.ids) != 1 {
+				if len(mockClient.actualArguments.ids) != 1 {
 					t.Error("assertion error of id")
-				} else if actualArguments.ids[0] != "test_id" {
+				} else if mockClient.actualArguments.ids[0] != "test_id" {
 					t.Error("assertion error of id")
 				}
 			}
@@ -1595,21 +1606,21 @@ too few arguments
 			if actualErrOut.String() != expectedErrOut {
 				t.Error("assertion error of stderr")
 			}
-			if actualArguments.connectionURL != "http://test.url" {
+			if mockClient.actualArguments.connectionURL != "http://test.url" {
 				t.Error("assertion error of url")
 			}
-			if actualArguments.fromDate != nil {
+			if mockClient.actualArguments.fromDate != nil {
 				t.Error("assertion error of from date")
 			}
-			if actualArguments.untilDate != nil {
+			if mockClient.actualArguments.untilDate != nil {
 				t.Error("assertion error of until date")
 			}
-			if actualArguments.ids == nil {
+			if mockClient.actualArguments.ids == nil {
 				t.Error("assertion error of id")
 			} else {
-				if len(actualArguments.ids) != 1 {
+				if len(mockClient.actualArguments.ids) != 1 {
 					t.Error("assertion error of id")
-				} else if actualArguments.ids[0] != "test_id" {
+				} else if mockClient.actualArguments.ids[0] != "test_id" {
 					t.Error("assertion error of id")
 				}
 			}
@@ -1667,21 +1678,21 @@ failed to close file './test/file.ext': test file close error
 			if actualErrOut.String() != expectedErrOut {
 				t.Error("assertion error of stderr")
 			}
-			if actualArguments.connectionURL != "http://test.url" {
+			if mockClient.actualArguments.connectionURL != "http://test.url" {
 				t.Error("assertion error of url")
 			}
-			if actualArguments.fromDate != nil {
+			if mockClient.actualArguments.fromDate != nil {
 				t.Error("assertion error of from date")
 			}
-			if actualArguments.untilDate != nil {
+			if mockClient.actualArguments.untilDate != nil {
 				t.Error("assertion error of until date")
 			}
-			if actualArguments.ids == nil {
+			if mockClient.actualArguments.ids == nil {
 				t.Error("assertion error of id")
 			} else {
-				if len(actualArguments.ids) != 1 {
+				if len(mockClient.actualArguments.ids) != 1 {
 					t.Error("assertion error of id")
-				} else if actualArguments.ids[0] != "test_id" {
+				} else if mockClient.actualArguments.ids[0] != "test_id" {
 					t.Error("assertion error of id")
 				}
 			}
