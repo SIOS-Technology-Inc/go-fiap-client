@@ -1,8 +1,7 @@
 # ワークフローの名前
 name: Go CI/CD
 
-# トリガーの設定
-# リポジトリへのpushとpull_requestをトリガーとする
+# リポジトリへのpushとpull_requestをトリガーとして設定
 on:
   push:
   pull_request:
@@ -29,10 +28,10 @@ jobs:
       - name: Run tests
         run: go test -v ./...
 
-  # CDジョブ
+  # ビルドジョブ
   build:
     # ジョブの名前
-    name: CD
+    name: Build
     # ジョブの実行環境
     runs-on: ubuntu-latest
     # ジョブのステップ
@@ -48,6 +47,35 @@ jobs:
       # ビルド
       - name: Build
         run: go build .
+      # artifactの作成
+      - name: Archive artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: go-fiap-client
+          path: ./go-fiap-client
+
+  # デプロイジョブ
+  deploy:
+    # ジョブの名前
+    name: Deploy
+    needs: [test, build]
+    # ジョブの実行環境
+    runs-on: ubuntu-latest
+    # ジョブのステップ
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      # Goのインストール
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.21.7
+      # artifactのダウンロード
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: go-fiap-client
+          path: ./go-fiap-client
       # scpでサーバーにデプロイ
       - name: Deploy
         uses: appleboy/scp-action@v0.1.7
