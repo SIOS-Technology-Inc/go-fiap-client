@@ -10,18 +10,20 @@ import (
 )
 
 type Fetcher interface {
-	Fetch(connectionURL string, keys []model.UserInputKey, option *model.FetchOption) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), fiapErr *model.Error, err error)
-	FetchOnce(connectionURL string, keys []model.UserInputKey, option *model.FetchOnceOption) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), cursor string, fiapErr *model.Error, err error)
-	FetchByIdsWithKey(connectionURL string, key model.UserInputKeyNoID, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), fiapErr *model.Error, err error)
-	FetchLatest(connectionURL string, fromDate *time.Time, untilDate *time.Time, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), fiapErr *model.Error, err error)
-	FetchOldest(connectionURL string, fromDate *time.Time, untilDate *time.Time, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), fiapErr *model.Error, err error)
-	FetchDateRange(connectionURL string, fromDate *time.Time, untilDate *time.Time, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), fiapErr *model.Error, err error)
+	Fetch(keys []model.UserInputKey, option *model.FetchOption) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), fiapErr *model.Error, err error)
+	FetchOnce(keys []model.UserInputKey, option *model.FetchOnceOption) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), cursor string, fiapErr *model.Error, err error)
+	FetchByIdsWithKey(key model.UserInputKeyNoID, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), fiapErr *model.Error, err error)
+	FetchLatest(fromDate *time.Time, untilDate *time.Time, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), fiapErr *model.Error, err error)
+	FetchOldest(fromDate *time.Time, untilDate *time.Time, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), fiapErr *model.Error, err error)
+	FetchDateRange(fromDate *time.Time, untilDate *time.Time, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), fiapErr *model.Error, err error)
 }
 
-type FetchClient struct{}
+type FetchClient struct {
+	ConnectionURL string
+}
 
-func (f *FetchClient) Fetch(connectionURL string, keys []model.UserInputKey, option *model.FetchOption) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), fiapErr *model.Error, err error) {
-	tools.LogPrintf(tools.LogLevelDebug, "Fetch start, connectionURL: %s, keys: %v, option: %#v\n", connectionURL, keys, option)
+func (f *FetchClient) Fetch(keys []model.UserInputKey, option *model.FetchOption) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), fiapErr *model.Error, err error) {
+	tools.LogPrintf(tools.LogLevelDebug, "Fetch start, connectionURL: %s, keys: %v, option: %#v\n", f.ConnectionURL, keys, option)
 
 	pointSets = make(map[string](model.ProcessedPointSet))
 	points = make(map[string]([]model.Value))
@@ -35,7 +37,7 @@ func (f *FetchClient) Fetch(connectionURL string, keys []model.UserInputKey, opt
 		i++
 		// FetchOnceを実行
 		fetchOnceOption := &model.FetchOnceOption{AcceptableSize: option.AcceptableSize, Cursor: cursor}
-		fetchOncePointSets, fetchOncePoints, newCursor ,fiapErr, err := f.FetchOnce(connectionURL, keys, fetchOnceOption)
+		fetchOncePointSets, fetchOncePoints, newCursor, fiapErr, err := f.FetchOnce(keys, fetchOnceOption)
 		if err != nil {
 			err = errors.Wrapf(err, "FetchOnce error on loop iteration %d", i)
 			tools.LogPrintf(tools.LogLevelError, "%+v\n", err)
@@ -44,7 +46,7 @@ func (f *FetchClient) Fetch(connectionURL string, keys []model.UserInputKey, opt
 		if fiapErr != nil {
 			return pointSets, points, fiapErr, nil
 		}
-		
+
 		// pointSetにデータを追加
 		for key, value := range fetchOncePointSets {
 			tempPointSet := value
@@ -67,7 +69,7 @@ func (f *FetchClient) Fetch(connectionURL string, keys []model.UserInputKey, opt
 			// pointsのkeyが設定されていない場合にはデータを加工せず代入する
 			points[key] = tempValues
 		}
-		
+
 		if newCursor == "" {
 			break
 		}
@@ -77,17 +79,17 @@ func (f *FetchClient) Fetch(connectionURL string, keys []model.UserInputKey, opt
 	return pointSets, points, fiapErr, err
 }
 
-func (f *FetchClient) FetchOnce(connectionURL string, keys []model.UserInputKey, option *model.FetchOnceOption) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), cursor string, fiapErr *model.Error ,err error) {
-	tools.LogPrintf(tools.LogLevelDebug, "FetchOnce start, connectionURL: %s, keys: %v, option: %#v\n", connectionURL, keys, option)
+func (f *FetchClient) FetchOnce(keys []model.UserInputKey, option *model.FetchOnceOption) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), cursor string, fiapErr *model.Error, err error) {
+	tools.LogPrintf(tools.LogLevelDebug, "FetchOnce start, connectionURL: %s, keys: %v, option: %#v\n", f.ConnectionURL, keys, option)
 
-	httpResponse, body, err := fiapFetch(connectionURL, keys, option)
+	httpResponse, body, err := fiapFetch(f.ConnectionURL, keys, option)
 	if err != nil {
 		err = errors.Wrap(err, "fiapFetch error")
 		tools.LogPrintf(tools.LogLevelError, "%+v\n", err)
-		return nil, nil, "", nil ,err
+		return nil, nil, "", nil, err
 	}
 
-	pointSets, points, cursor, fiapErr, err = processQueryRS(httpResponse,body)
+	pointSets, points, cursor, fiapErr, err = processQueryRS(httpResponse, body)
 	if err != nil {
 		err = errors.Wrap(err, "processQueryRS error")
 		tools.LogPrintf(tools.LogLevelError, "%+v\n", err)
@@ -97,8 +99,8 @@ func (f *FetchClient) FetchOnce(connectionURL string, keys []model.UserInputKey,
 	return pointSets, points, cursor, fiapErr, nil
 }
 
-func (f *FetchClient) FetchByIdsWithKey(connectionURL string, key model.UserInputKeyNoID, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), fiapErr *model.Error , err error) {
-	tools.LogPrintf(tools.LogLevelDebug, "FetchByIdsWithKey start, connectionURL: %s, key: %#v, ids: %v\n", connectionURL, key, ids)
+func (f *FetchClient) FetchByIdsWithKey(key model.UserInputKeyNoID, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), fiapErr *model.Error, err error) {
+	tools.LogPrintf(tools.LogLevelDebug, "FetchByIdsWithKey start, connectionURL: %s, key: %#v, ids: %v\n", f.ConnectionURL, key, ids)
 	if len(ids) == 0 {
 		err = errors.New("ids is empty, set at least one id")
 		tools.LogPrintf(tools.LogLevelError, "%+v\n", err)
@@ -119,7 +121,7 @@ func (f *FetchClient) FetchByIdsWithKey(connectionURL string, key model.UserInpu
 		})
 	}
 	// Fetchを実行
-	pointSets, points, fiapErr, err = f.Fetch(connectionURL, keys, &model.FetchOption{})
+	pointSets, points, fiapErr, err = f.Fetch(keys, &model.FetchOption{})
 	if err != nil {
 		err = errors.Wrap(err, "Fetch error")
 		tools.LogPrintf(tools.LogLevelError, "%+v\n", err)
@@ -129,9 +131,9 @@ func (f *FetchClient) FetchByIdsWithKey(connectionURL string, key model.UserInpu
 	return pointSets, points, fiapErr, nil
 }
 
-func (f *FetchClient) FetchLatest(connectionURL string, fromDate *time.Time, untilDate *time.Time ,ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), fiapErr *model.Error, err error) {
-	tools.LogPrintf(tools.LogLevelDebug, "FetchLatest start connectionURL: %s, fromDate: %v, untilDate: %v, ids: %v\n", connectionURL, fromDate, untilDate, ids)
-	pointSets, points, fiapErr, err = f.FetchByIdsWithKey(connectionURL, model.UserInputKeyNoID{
+func (f *FetchClient) FetchLatest(fromDate *time.Time, untilDate *time.Time, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), fiapErr *model.Error, err error) {
+	tools.LogPrintf(tools.LogLevelDebug, "FetchLatest start connectionURL: %s, fromDate: %v, untilDate: %v, ids: %v\n", f.ConnectionURL, fromDate, untilDate, ids)
+	pointSets, points, fiapErr, err = f.FetchByIdsWithKey(model.UserInputKeyNoID{
 		MinMaxIndicator: model.SelectTypeMaximum,
 		Gteq:            fromDate,
 		Lteq:            untilDate,
@@ -145,9 +147,9 @@ func (f *FetchClient) FetchLatest(connectionURL string, fromDate *time.Time, unt
 	return pointSets, points, fiapErr, nil
 }
 
-func (f *FetchClient) FetchOldest(connectionURL string, fromDate *time.Time, untilDate *time.Time, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value),fiapErr *model.Error, err error) {
-	tools.LogPrintf(tools.LogLevelDebug, "FetchOldest start connectionURL: %s, fromDate: %v, untilDate: %v, ids: %v\n", connectionURL, fromDate, untilDate, ids)
-	pointSets, points, fiapErr, err = f.FetchByIdsWithKey(connectionURL, model.UserInputKeyNoID{
+func (f *FetchClient) FetchOldest(fromDate *time.Time, untilDate *time.Time, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), fiapErr *model.Error, err error) {
+	tools.LogPrintf(tools.LogLevelDebug, "FetchOldest start connectionURL: %s, fromDate: %v, untilDate: %v, ids: %v\n", f.ConnectionURL, fromDate, untilDate, ids)
+	pointSets, points, fiapErr, err = f.FetchByIdsWithKey(model.UserInputKeyNoID{
 		MinMaxIndicator: model.SelectTypeMinimum,
 		Gteq:            fromDate,
 		Lteq:            untilDate,
@@ -161,15 +163,15 @@ func (f *FetchClient) FetchOldest(connectionURL string, fromDate *time.Time, unt
 	return pointSets, points, fiapErr, nil
 }
 
-func (f *FetchClient) FetchDateRange(connectionURL string, fromDate *time.Time, untilDate *time.Time, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), fiapErr *model.Error, err error) {
-	tools.LogPrintf(tools.LogLevelDebug, "FetchDateRange start, connectionURL: %s, fromDate: %v, untilDate: %v,  ids: %v\n", connectionURL, fromDate, untilDate, ids)
-	pointSets, points, fiapErr, err = f.FetchByIdsWithKey(connectionURL, 
+func (f *FetchClient) FetchDateRange(fromDate *time.Time, untilDate *time.Time, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), fiapErr *model.Error, err error) {
+	tools.LogPrintf(tools.LogLevelDebug, "FetchDateRange start, connectionURL: %s, fromDate: %v, untilDate: %v,  ids: %v\n", f.ConnectionURL, fromDate, untilDate, ids)
+	pointSets, points, fiapErr, err = f.FetchByIdsWithKey(
 		model.UserInputKeyNoID{
 			Gteq:            fromDate,
 			Lteq:            untilDate,
 			MinMaxIndicator: model.SelectTypeNone,
-		}, 
-		ids...
+		},
+		ids...,
 	)
 	if err != nil {
 		err = errors.Wrap(err, "FetchByIdsWithKey error")
@@ -207,7 +209,7 @@ func processQueryRS(httpResponse *http.Response, queryRS *model.QueryRS) (pointS
 	// mapの初期化
 	pointSets = make(map[string](model.ProcessedPointSet))
 	points = make(map[string]([]model.Value))
-	
+
 	// BodyにPointSetが返っていれば、それを処理する
 	if queryRS.Transport.Body.PointSet != nil {
 		tools.LogPrintf(tools.LogLevelDebug, "processQueryRS, pointSet is not nil")
