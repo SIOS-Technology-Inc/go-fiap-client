@@ -4,20 +4,20 @@ import (
 	"log"
 )
 
-type LogLevel int
+type logLevel int
 
 const (
-	LogLevelDebug LogLevel = 0
-	LogLevelError  LogLevel = 3
+	LogLevelDebug logLevel = 0
+	LogLevelError  logLevel = 3
 )
 
-var setLogLevel LogLevel = LogLevelError
+var setLogLevel logLevel = LogLevelError
 
-func SetLogLevel(l LogLevel) {
+func SetLogLevel(l logLevel) {
 	setLogLevel = l
 }
 
-func LogPrintf(printLogLevel LogLevel, format string, a ...interface{}) {
+func LogPrintf(printLogLevel logLevel, format string, a ...interface{}) {
 	if printLogLevel >= setLogLevel {
 		var levelStr string
 		if printLogLevel == LogLevelDebug {
