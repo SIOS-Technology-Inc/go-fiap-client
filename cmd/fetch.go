@@ -14,8 +14,9 @@ import (
 )
 
 var (
-	fetchClient fiap.Fetcher = &fiap.FetchClient{}
-
+	createFetchClient func(string) fiap.Fetcher = func(connectionURL string) fiap.Fetcher {
+		return &fiap.FetchClient{ConnectionURL: connectionURL}
+	}
 	createFile func(string) (io.WriteCloser, error) = func(name string) (io.WriteCloser, error) {
 		return os.Create(name)
 	}
@@ -150,9 +151,10 @@ func executeFetch(connectionURL string, id string, fromDate, untilDate *time.Tim
 	}
 	var fiapError error = nil
 
+	fetchClient := createFetchClient(connectionURL)
 	switch selectType {
 	case model.SelectTypeMaximum:
-		if pointSets, points, fiapErr, err := fetchClient.FetchLatest(connectionURL, fromDate, untilDate, id); err == nil {
+		if pointSets, points, fiapErr, err := fetchClient.FetchLatest(fromDate, untilDate, id); err == nil {
 			result.PointSets = pointSets
 			result.Points = points
 			if fiapErr != nil {
@@ -162,7 +164,7 @@ func executeFetch(connectionURL string, id string, fromDate, untilDate *time.Tim
 			return nil, nil, errors.Wrapf(err, "failed to fetch from %s", connectionURL)
 		}
 	case model.SelectTypeMinimum:
-		if pointSets, points, fiapErr, err := fetchClient.FetchOldest(connectionURL, fromDate, untilDate, id); err == nil {
+		if pointSets, points, fiapErr, err := fetchClient.FetchOldest(fromDate, untilDate, id); err == nil {
 			result.PointSets = pointSets
 			result.Points = points
 			if fiapErr != nil {
@@ -172,7 +174,7 @@ func executeFetch(connectionURL string, id string, fromDate, untilDate *time.Tim
 			return nil, nil, errors.Wrapf(err, "failed to fetch from %s", connectionURL)
 		}
 	case model.SelectTypeNone:
-		if pointSets, points, fiapErr, err := fetchClient.FetchDateRange(connectionURL, fromDate, untilDate, id); err == nil {
+		if pointSets, points, fiapErr, err := fetchClient.FetchDateRange(fromDate, untilDate, id); err == nil {
 			result.PointSets = pointSets
 			result.Points = points
 			if fiapErr != nil {

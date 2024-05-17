@@ -7,15 +7,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/SIOS-Technology-Inc/go-fiap-client/pkg/fiap"
 	"github.com/SIOS-Technology-Inc/go-fiap-client/pkg/fiap/model"
 	"github.com/cockroachdb/errors"
 )
 
 var (
-	originalFetchClient = fetchClient
-	originalCreateFile  = createFile
-	originalMarshalJSON = marshalJSON
-	originalArgs        = os.Args
+	originalCreateFetchClient = createFetchClient
+	originalCreateFile        = createFile
+	originalMarshalJSON       = marshalJSON
+	originalArgs              = os.Args
 
 	mockOut    = &strings.Builder{}
 	mockErrOut = &strings.Builder{}
@@ -37,29 +38,40 @@ type fetchFuncResults struct {
 }
 
 type mockFetchClient struct {
+	ConnectionURL string
+
 	failLatest, failOldest, failDateRange bool
 
 	actualArguments fetchFuncArguments
 	results         fetchFuncResults
 }
 
-func (f *mockFetchClient) Fetch(connectionURL string, keys []model.UserInputKey, option *model.FetchOption) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), fiapErr *model.Error, err error) {
+func mockCreateFetchClient(connectionURL string) fiap.Fetcher {
+	mockClient.ConnectionURL = connectionURL
+	mockClient.actualArguments.connectionURL = ""
+	mockClient.actualArguments.fromDate = nil
+	mockClient.actualArguments.untilDate = nil
+	mockClient.actualArguments.ids = nil
+	return mockClient
+}
+
+func (f *mockFetchClient) Fetch(keys []model.UserInputKey, option *model.FetchOption) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), fiapErr *model.Error, err error) {
 	return nil, nil, nil, errors.New("unimplemented")
 }
 
-func (f *mockFetchClient) FetchOnce(connectionURL string, keys []model.UserInputKey, option *model.FetchOnceOption) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), cursor string, fiapErr *model.Error, err error) {
+func (f *mockFetchClient) FetchOnce(keys []model.UserInputKey, option *model.FetchOnceOption) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), cursor string, fiapErr *model.Error, err error) {
 	return nil, nil, "", nil, errors.New("unimplemented")
 }
 
-func (f *mockFetchClient) FetchByIdsWithKey(connectionURL string, key model.UserInputKeyNoID, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), fiapErr *model.Error, err error) {
+func (f *mockFetchClient) FetchByIdsWithKey(key model.UserInputKeyNoID, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), fiapErr *model.Error, err error) {
 	return nil, nil, nil, errors.New("unimplemented")
 }
 
-func (f *mockFetchClient) FetchLatest(connectionURL string, fromDate *time.Time, untilDate *time.Time, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), fiapErr *model.Error, err error) {
+func (f *mockFetchClient) FetchLatest(fromDate *time.Time, untilDate *time.Time, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), fiapErr *model.Error, err error) {
 	if f.failLatest {
 		return nil, nil, nil, errors.New("test FetchLatest error")
 	} else {
-		f.actualArguments.connectionURL = connectionURL
+		f.actualArguments.connectionURL = f.ConnectionURL
 		f.actualArguments.fromDate = fromDate
 		f.actualArguments.untilDate = untilDate
 		f.actualArguments.ids = ids
@@ -67,11 +79,11 @@ func (f *mockFetchClient) FetchLatest(connectionURL string, fromDate *time.Time,
 	}
 }
 
-func (f *mockFetchClient) FetchOldest(connectionURL string, fromDate *time.Time, untilDate *time.Time, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), fiapErr *model.Error, err error) {
+func (f *mockFetchClient) FetchOldest(fromDate *time.Time, untilDate *time.Time, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), fiapErr *model.Error, err error) {
 	if f.failOldest {
 		return nil, nil, nil, errors.New("test FetchOldest error")
 	} else {
-		f.actualArguments.connectionURL = connectionURL
+		f.actualArguments.connectionURL = f.ConnectionURL
 		f.actualArguments.fromDate = fromDate
 		f.actualArguments.untilDate = untilDate
 		f.actualArguments.ids = ids
@@ -79,11 +91,11 @@ func (f *mockFetchClient) FetchOldest(connectionURL string, fromDate *time.Time,
 	}
 }
 
-func (f *mockFetchClient) FetchDateRange(connectionURL string, fromDate *time.Time, untilDate *time.Time, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), fiapErr *model.Error, err error) {
+func (f *mockFetchClient) FetchDateRange(fromDate *time.Time, untilDate *time.Time, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), fiapErr *model.Error, err error) {
 	if f.failDateRange {
 		return nil, nil, nil, errors.New("test FetchDateRange error")
 	} else {
-		f.actualArguments.connectionURL = connectionURL
+		f.actualArguments.connectionURL = f.ConnectionURL
 		f.actualArguments.fromDate = fromDate
 		f.actualArguments.untilDate = untilDate
 		f.actualArguments.ids = ids
@@ -147,12 +159,12 @@ func resetActualValues() {
 }
 
 func TestMain(m *testing.M) {
-	fetchClient = mockClient
+	createFetchClient = mockCreateFetchClient
 	createFile = mockCreateFile
 
 	m.Run()
 
-	fetchClient = originalFetchClient
+	createFetchClient = originalCreateFetchClient
 	createFile = originalCreateFile
 	marshalJSON = originalMarshalJSON
 	os.Args = originalArgs
