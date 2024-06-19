@@ -1,8 +1,12 @@
+// fetchのベンチマークテスト
+// benchmarkテスト用のサーバーへの接続先を環境変数BENCHMARK_CONNECTION_URLで設定し、以下のコマンドで実行
+// go test -run=^$ -bench=. -benchmem
 package fiap
 
 import (
 	"testing"
 	"time"
+	"os"
 
 	"github.com/SIOS-Technology-Inc/go-fiap-client/pkg/fiap/model"
 	"github.com/SIOS-Technology-Inc/go-fiap-client/pkg/fiap/testutil"
@@ -11,8 +15,7 @@ import (
 	"context"
 )
 
-var benchMarkConnectionURL = "http://fiap-benchmark-server.eastus.cloudapp.azure.com:8080/mockFIAPServiceSoap"
-
+var benchMarkConnectionURL = os.Getenv("BENCHMARK_CONNECTION_URL")
 
 func BenchmarkFiapFetch(b *testing.B) {
 	for _ , id := range []string{
