@@ -37,6 +37,12 @@ func newRootCmd(out io.Writer, errOut io.Writer) *cobra.Command {
 	return cmd
 }
 
+/*
+Execute parses command line arguments and executes commands
+Executeは、コマンドライン引数を解析し、コマンドを実行します
+
+main.goでこの関数を呼び出し、コマンドラインの処理を行います
+*/
 func Execute() error {
 	return newRootCmd(os.Stdout, os.Stderr).Execute()
 }

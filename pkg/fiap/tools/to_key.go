@@ -4,6 +4,8 @@ import (
 	"github.com/SIOS-Technology-Inc/go-fiap-client/pkg/fiap/model"
 )
 
+// UserInputKeysToKeys converts UserInputKey to Key.
+// UserInputKeysToKeysは、UserInputKeyをKeyに変換します。
 func UserInputKeysToKeys(ks []model.UserInputKey) []model.Key {
 	var keys []model.Key
 	for _, k := range ks {
