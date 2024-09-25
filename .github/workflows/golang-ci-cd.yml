@@ -55,34 +55,35 @@ jobs:
           path: ./go-fiap-client
 
   # デプロイジョブ
-  deploy:
-    # ジョブの名前
-    name: Deploy
-    needs: [test, build]
-    # ジョブの実行環境
-    runs-on: ubuntu-latest
-    # ジョブのステップ
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      # Goのインストール
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: 1.21.7
-      # artifactのダウンロード
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: go-fiap-client
-          path: ./go-fiap-client
-      # scpでサーバーにデプロイ
-      - name: Deploy
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.FIAP_KEY }}
-          port: ${{ secrets.PORT }}
-          source: "./go-fiap-client"
-          target: "/home/azureuser"
+  # 以下の部分は結合テストやパフォーマンステストに使用したため、コメントアウトしました。
+  # deploy:
+  #   # ジョブの名前
+  #   name: Deploy
+  #   needs: [test, build]
+  #   # ジョブの実行環境
+  #   runs-on: ubuntu-latest
+  #   # ジョブのステップ
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v4
+  #     # Goのインストール
+  #     - name: Setup Go
+  #       uses: actions/setup-go@v5
+  #       with:
+  #         go-version: 1.21.7
+  #     # artifactのダウンロード
+  #     - name: Download artifact
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: go-fiap-client
+  #         path: ./go-fiap-client
+  #     # scpでサーバーにデプロイ
+  #     - name: Deploy
+  #       uses: appleboy/scp-action@v0.1.7
+  #       with:
+  #         host: ${{ secrets.HOST }}
+  #         username: ${{ secrets.USERNAME }}
+  #         key: ${{ secrets.FIAP_KEY }}
+  #         port: ${{ secrets.PORT }}
+  #         source: "./go-fiap-client"
+  #         target: "/home/azureuser"
