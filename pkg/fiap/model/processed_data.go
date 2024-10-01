@@ -2,6 +2,7 @@ package model
 
 /*
 ProcessedPointSet is a type for the processed point set.
+
 ProcessedPointSet は処理されたポイントセットの型です。
 
 この型は、Fetcherメソッドの戻り値としてpointSetを返す際に使用します。
