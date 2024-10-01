@@ -47,14 +47,14 @@ go run main.go fetch --select max "http://example.jp/FIAPEndpoint" "sios/example
 ## how to use library
 go.modに次の文を追加します。
 ```go
-require github.com/SIOS-Technology-Inc/go-fiap-client v0.2.0
+require github.com/SIOS-Technology-Inc/go-fiap-client v0.2.2
 ```
-パッケージや関数の詳細は[ドキュメント]()を参照してください。
+パッケージや関数の詳細は[ドキュメント](https://pkg.go.dev/github.com/SIOS-Technology-Inc/go-fiap-client@v0.2.2/pkg/fiap)を参照してください。
 
 ## how to use command line
 次のコマンドでローカルにコマンドをインストールします。
 ```bash
-go install github.com/SIOS-Technology-Inc/go-fiap-client v0.2.0
+go install github.com/SIOS-Technology-Inc/go-fiap-client v0.2.2
 ```
 ### コマンドラインの記法
 #### Fetch
@@ -65,9 +65,9 @@ go-fiap-client fetch [flags] URL (POINT_ID | POINTSET_ID)
 - `-h`, `--help`<br>オプション情報を含むコマンドのヘルプを表示します。
 - `-d`, `--debug`<br>デバッグ用出力が表示されるようにします。
 - `-o FILEPATH`, `--output FILEPATH`<br>Fetchの結果を指定したファイルに出力します。
-- `-s TYPE`, `--select TYPE`<br>Fetchされるデータを変更するオプションです。`TYPE`は`max`, `min`, `none`を記述します。指定しない場合のデフォルトは`max`です。
+- `-s TYPE`, `--select TYPE`<br>Fetchされるデータを変更するオプションです。`TYPE`は`max`, `min`, `none`を記述します。指定しない場合のデフォルトは`max`です。<br>FIAPのkeyクラスの`select`の、それぞれ`maximum`、`minimun`、指定なしに対応します。
 - `--from DATETIME`
-- `--until DATETIME`<br>指定した日付期間で取得するデータを絞り込みます。`DATETIME`には指定する日付日時をRFC3339形式の文字列で指定します。
+- `--until DATETIME`<br>指定した日付期間で取得するデータを絞り込みます。`DATETIME`には指定する日付日時をRFC3339形式の文字列で指定します。<br>FIAPのkeyクラスの`gteq`、`lteq`にそれぞれ対応します。
 #### その他
 ```bash
 go-fiap-client [flags]
