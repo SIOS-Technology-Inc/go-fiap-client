@@ -14,4 +14,5 @@ RUN go install golang.org/x/tools/gopls@v0.14.2 &&\
   go install github.com/haya14busa/goplay/cmd/goplay@v1.0.0 &&\
   go install github.com/go-delve/delve/cmd/dlv@v1.22.0 &&\
   go install honnef.co/go/tools/cmd/staticcheck@v0.4.5 &&\
-  go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.56.0
+  go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.56.0 &&\
+  go install golang.org/x/tools/cmd/godoc@v0.24.0

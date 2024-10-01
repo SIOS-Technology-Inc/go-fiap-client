@@ -4,6 +4,8 @@ services:
     build: .
     tty: true
     stdin_open: true
-    command: /bin/bash
+    command: /go/bin/godoc -http :6060
+    ports:
+      - "6060:6060"
     volumes:
       - .:/go/src/work
