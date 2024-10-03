@@ -45,16 +45,16 @@ go run main.go fetch --select max "http://example.jp/FIAPEndpoint" "sios/example
 ```
 
 ## how to use library
-go.modに次の文を追加します。
-```go
-require github.com/SIOS-Technology-Inc/go-fiap-client v0.2.2
+go.modが存在するディレクトリで次のコマンドを実行します。
+```bash
+go get github.com/SIOS-Technology-Inc/go-fiap-client@latest
 ```
-パッケージや関数の詳細は[ドキュメント](https://pkg.go.dev/github.com/SIOS-Technology-Inc/go-fiap-client@v0.2.2/pkg/fiap)を参照してください。
+パッケージや関数の詳細は[ドキュメント](https://pkg.go.dev/github.com/SIOS-Technology-Inc/go-fiap-client/pkg/fiap)を参照してください。
 
 ## how to use command line
 次のコマンドでローカルにコマンドをインストールします。
 ```bash
-go install github.com/SIOS-Technology-Inc/go-fiap-client v0.2.2
+go install github.com/SIOS-Technology-Inc/go-fiap-client@latest
 ```
 ### コマンドラインの記法
 #### Fetch
