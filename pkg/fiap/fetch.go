@@ -9,6 +9,23 @@ import (
 	"github.com/cockroachdb/errors"
 )
 
+/*
+Fetcher is an interface for fetching data from the FIAP server.
+
+FetcherはFIAPサーバからデータを取得するためのインターフェースです。
+
+Fetch: 与えられたキーとオプションを使用して、FIAPサーバからデータを取得します。
+
+FetchOnce: Fetchメソッドと同様に、与えられたキーとオプションを使用してデータを取得しますが、一度だけ取得します。また、後続のfetchのためのカーソルも返します。
+
+FetchByIdsWithKey: 指定したキーとIDのセットを使用してデータを取得します。
+
+FetchLatest: 指定された日付範囲とIDセット内の最新データを取得します。
+
+FetchOldest: 指定された日付範囲とIDセット内の最古のデータを取得します。
+
+FetchDateRange: 指定された日付範囲とIDセット内のデータを取得します。
+*/
 type Fetcher interface {
 	Fetch(keys []model.UserInputKey, option *model.FetchOption) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), fiapErr *model.Error, err error)
 	FetchOnce(keys []model.UserInputKey, option *model.FetchOnceOption) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), cursor string, fiapErr *model.Error, err error)
@@ -18,10 +35,38 @@ type Fetcher interface {
 	FetchDateRange(fromDate *time.Time, untilDate *time.Time, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), fiapErr *model.Error, err error)
 }
 
+/* 
+FetchClient is a client struct for fetching data from a FIAP server.
+
+FetchClientはFIAPサーバからデータを取得するためのクライアント構造体です。
+*/
 type FetchClient struct {
 	ConnectionURL string
 }
 
+/*
+Fetch fetches data from the FIAP server using the provided keys and options.
+
+Fetchは、与えられたキーとオプションを使用してFIAPサーバからデータを取得します。
+
+この関数はFetchOnceメソッドを繰り返し呼び出し、取得したデータを結果のmapに追加します。
+そして、FetchOnceの戻り値のcursorが""になるまで、繰り返し処理を行います。
+
+※cursorは、連続した大量のデータを一度に取得できる量を制限し分割して取得する場合に、どの位置までデータを取得したかを示すために使用されます。
+
+引数
+ - keys: データの範囲を指定するためのkeyの配列。1つのkeyの条件はAND結合です。複数のkeyを指定すると、OR結合になります。
+ - option: オプションの指定は任意です。指定しない場合はnilを設定して下さい。
+
+戻り値
+ - pointSets: keysの中で指定したIDをキーとして取得したpointSetIDとPointIDのデータのmap
+ - points: keysで指定したIDをキーとして取得した時系列データのmap
+ - fiapErr: fiap通信の<error>タグを格納する構造体。タグがない場合はnil
+ - err: goのエラー情報を格納する構造体。エラーが発生した場合、スタックトレースを含むエラー情報が返される。エラーがない場合はnil。
+ 
+errの発生条件
+  - fetchOnceメソッドでエラーが発生した場合
+*/
 func (f *FetchClient) Fetch(keys []model.UserInputKey, option *model.FetchOption) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), fiapErr *model.Error, err error) {
 	tools.LogPrintf(tools.LogLevelDebug, "Fetch start, connectionURL: %s, keys: %v, option: %#v\n", f.ConnectionURL, keys, option)
 
@@ -79,6 +124,63 @@ func (f *FetchClient) Fetch(keys []model.UserInputKey, option *model.FetchOption
 	return pointSets, points, fiapErr, err
 }
 
+/*
+FetchOnce fetches data from the FIAP server only once using the provided keys and options.
+
+FetchOnceは、与えられたキーとオプションを使用して、FIAPサーバからデータを一度だけ取得します。
+
+この関数はデータをFIAPサーバーから一度だけ取得し、取得したデータを返します。
+一度に取得するデータが多すぎる場合は、後続のfetchのためのカーソルが返されます。
+
+以下は、cursorが返ってきた場合に後続のデータを取得するための具体的なコード例
+	// FetchOnceの1度目の呼び出し
+	pointSets, points, cursor, fiapErr, err := fetchClient.FetchOnce([]model.UserInputKey{
+		{
+			ID: "id1",
+		}
+	}, &model.FetchOnceOption{
+		AcceptableSize: 1,
+	})
+
+	// cursorが返ってきた場合、FetchOnceをもう一度呼び出し、続きのデータを取得する
+	if cursor != "" {
+		// cursorが返ってきた場合は、続きのデータを取得する
+		pointSets, points, cursor, fiapErr, err = fetchClient.FetchOnce([]model.UserInputKey{
+			{
+				ID: "id1",
+			}
+		}, &model.FetchOnceOption{
+			AcceptableSize: 1,
+			// FetchOnceの1度目の呼び出しで取得したcursorを指定する
+			Cursor: cursor,
+		})
+	}
+	
+	// もしさらにcursorが返ってきた場合は、同様に続きのデータを取得する
+		
+引数
+ - keys: データの範囲を指定するためのkeyの配列。1つのkeyの条件はAND結合です。複数のkeyを指定すると、OR結合になります。
+ - option: オプションの指定は任意です。指定しない場合はnilを設定して下さい。
+
+戻り値
+ - pointSets: keysの中で指定したIDをキーとして取得したpointSetIDとPointIDのデータのmap
+ - points: keysで指定したIDをキーとして取得した時系列データのmap
+ - cursor: 後続のfetchのためのカーソル。fetchOnceで取得するデータの量が多すぎる場合にカーソルが返されます。データを最後まで取得できた場合は""が返されます。
+ - fiapErr: fiap通信の<error>タグを格納する構造体。タグがない場合はnil
+ - err: goのエラー情報を格納する構造体。エラーが発生した場合、スタックトレースを含むエラー情報が返される。エラーがない場合はnil。
+
+fiapErrの発生条件
+ - processQueryRSでエラーが発生しqueryRS.Transport.Header.Errorがnilでない場合、SOAP通信は成功したがFIAP通信が失敗したことを示すqueryRS.Transport.Header.Errorの情報をfiapErrとして返す
+
+errの発生条件
+ - レシーバfで設定したconnectionURLが http:// または https:// で始まっていない場合(fiapFetch内でエラー)
+ - メソッドの引数のkeysの長さが0の場合(fiapFetch内でエラー)
+ - メソッドの引数のkeys.IDが空の場合(fiapFetch内でエラー)
+ - soap通信を行うclient.Callメソッドでエラーが発生した場合(fiapFetch内でエラー)
+ - queryRS.Transportがnilの場合(processQueryRS内でエラー): データが取得できていないためエラーとし、その原因を特定するためにhttp status codeを表示する
+ - queryRS.Transport.Headerがnilの場合(processQueryRS内でエラー): SOAP通信に成功した場合はHeader内にokまたはerrorが格納されるためHeaderがnilの場合はエラーとし、その原因を特定するためhttp status codeを表示する
+ - queryRS.Transport.Header.OKがnilでなく、queryRS.Transport.Bodyがnilの場合(processQueryRS内でエラー): SOAP通信に成功した場合はBody内にデータが格納されるためBodyがnilの場合はエラーとし、その原因を特定するためにhttp status codeを表示する
+*/
 func (f *FetchClient) FetchOnce(keys []model.UserInputKey, option *model.FetchOnceOption) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), cursor string, fiapErr *model.Error, err error) {
 	tools.LogPrintf(tools.LogLevelDebug, "FetchOnce start, connectionURL: %s, keys: %v, option: %#v\n", f.ConnectionURL, keys, option)
 
@@ -99,6 +201,39 @@ func (f *FetchClient) FetchOnce(keys []model.UserInputKey, option *model.FetchOn
 	return pointSets, points, cursor, fiapErr, nil
 }
 
+/*
+FetchByIdsWithKey fetches data using the specified key and set of IDs.
+
+FetchByIdsWithKeyは、指定されたキーとIDのセットを使用してデータを取得します。
+
+この関数はFetchメソッドを使用し、指定されたキーとIDのセットのデータを取得します。
+
+以下は、FetchByIdsWithKeyの呼び出しの例と、それと同じ結果を返すFetchメソッドの呼び出しの例を示します。
+	// FetchByIdsWithKeyの呼び出しの例
+	pointSets, points, fiapErr, err := fetchClient.FetchByIdsWithKey(model.UserInputKeyNoID{
+		MinMaxIndicator: model.SelectTypeNone,
+	}, "id1", "id2", "id3")
+
+	// FetchByIdsWithKeyの呼び出しの例と同じ結果を返すFetchメソッドの呼び出しの例
+	pointSets, points, fiapErr, err := fetchClient.Fetch([]model.UserInputKey{
+		{ID: "id1"},
+		{ID: "id2"},
+		{ID: "id3"},
+	}, &model.FetchOption{})
+
+引数
+ - key: データの範囲を指定するためのkey。idsで指定したすべてのIDに適用される。key内の条件を組み合わせると、AND結合になる。
+ - ids: データのID、複数のIDをカンマ区切りで指定可能
+
+戻り値
+ - pointSets: keysの中で指定したIDをキーとして取得したpointSetIDとPointIDのデータのmap
+ - points: keysで指定したIDをキーとして取得した時系列データのmap
+ - fiapErr: fiap通信の<error>タグを格納する構造体。タグがない場合はnil
+ - err: goのエラー情報を格納する構造体。エラーが発生した場合、スタックトレースを含むエラー情報が返される。エラーがない場合はnil。
+
+errの発生条件
+ - Fetchメソッドでエラーが発生した場合
+*/
 func (f *FetchClient) FetchByIdsWithKey(key model.UserInputKeyNoID, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), fiapErr *model.Error, err error) {
 	tools.LogPrintf(tools.LogLevelDebug, "FetchByIdsWithKey start, connectionURL: %s, key: %#v, ids: %v\n", f.ConnectionURL, key, ids)
 	if len(ids) == 0 {
@@ -131,6 +266,38 @@ func (f *FetchClient) FetchByIdsWithKey(key model.UserInputKeyNoID, ids ...strin
 	return pointSets, points, fiapErr, nil
 }
 
+/*
+FetchLatest fetches the latest data within a specified date range and set of IDs.
+
+FetchLatestは、指定された日付範囲とIDセット内の最新データを取得します。
+
+この関数は、FetchByIdWithKeyを使用して、指定された日付範囲とIDセット内の最新データを取得します。
+
+以下に、FetchLatestの呼び出しの例と、それと同じ結果を返すFetchByIdWithKeyの呼び出しの例を示します。
+	// FetchLatestの呼び出しの例
+	pointSets, points, fiapErr, err := fetchClient.FetchLatest(&fromDate, &untilDate, "id1", "id2", "id3")
+
+	// FetchLatestの呼び出しの例と同じ結果を返すFetchByIdWithKeyの呼び出しの例
+	pointSets, points, fiapErr, err := fetchClient.FetchByIdWithKey(model.UserInputKeyNoID{
+		MinMaxIndicator: model.SelectTypeMaximum,
+		Gteq:            &fromDate,
+		Lteq:            &untilDate,
+	}, "id1", "id2", "id3") 
+
+引数
+ - fromDate: fetchするデータの開始日時
+ - untilDate: fetchするデータの終了日時
+ - ids: fetchするデータのID、複数のIDをカンマ区切りで指定可能
+
+戻り値
+ - pointSets: keysの中で指定したIDをキーとして取得したpointSetIDとPointIDのデータのmap
+ - points: keysで指定したIDをキーとして取得した時系列データのmap
+ - fiapErr: fiap通信の<error>タグを格納する構造体。タグがない場合はnil
+ - err: goのエラー情報を格納する構造体。エラーが発生した場合、スタックトレースを含むエラー情報が返される。エラーがない場合はnil。
+
+errの発生条件
+ - FetchByIdWithKeyでエラーが発生した場合
+*/
 func (f *FetchClient) FetchLatest(fromDate *time.Time, untilDate *time.Time, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), fiapErr *model.Error, err error) {
 	tools.LogPrintf(tools.LogLevelDebug, "FetchLatest start connectionURL: %s, fromDate: %v, untilDate: %v, ids: %v\n", f.ConnectionURL, fromDate, untilDate, ids)
 	pointSets, points, fiapErr, err = f.FetchByIdsWithKey(model.UserInputKeyNoID{
@@ -147,6 +314,38 @@ func (f *FetchClient) FetchLatest(fromDate *time.Time, untilDate *time.Time, ids
 	return pointSets, points, fiapErr, nil
 }
 
+/*
+FetchOldest fetches the oldest data within a specified date range and set of IDs.
+
+FetchOldestは、指定された日付範囲とIDセット内の最古のデータを取得します。
+
+この関数は、FetchByIdWithKeyを使用して、指定された日付範囲とIDセット内の最古のデータを取得します。
+
+以下に、FetchOldestの呼び出しの例と、それと同じ結果を返すFetchByIdWithKeyの呼び出しの例を示します。
+	// FetchOldestの呼び出しの例
+	pointSets, points, fiapErr, err := fetchClient.FetchOldest(&fromDate, &untilDate, "id1", "id2", "id3")
+
+	// FetchOldestの呼び出しの例と同じ結果を返すFetchByIdWithKeyの呼び出しの例
+	pointSets, points, fiapErr, err := fetchClient.FetchByIdWithKey(model.UserInputKeyNoID{
+		MinMaxIndicator: model.SelectTypeMinimum,
+		Gteq:            &fromDate,
+		Lteq:            &untilDate,
+	}, "id1", "id2", "id3")
+
+引数
+ - fromDate: fetchするデータの開始日時
+ - untilDate: fetchするデータの終了日時
+ - ids: fetchするデータのID、複数のIDをカンマ区切りで指定可能
+
+戻り値
+ - pointSets: keysの中で指定したIDをキーとして取得したpointSetIDとPointIDのデータのmap
+ - points: keysで指定したIDをキーとして取得した時系列データのmap
+ - fiapErr: fiap通信の<error>タグを格納する構造体。タグがない場合はnil
+ - err: goのエラー情報を格納する構造体。エラーが発生した場合、スタックトレースを含むエラー情報が返される。エラーがない場合はnil。
+
+errの発生条件
+ - FetchByIdWithKeyでエラーが発生した場合
+*/
 func (f *FetchClient) FetchOldest(fromDate *time.Time, untilDate *time.Time, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), fiapErr *model.Error, err error) {
 	tools.LogPrintf(tools.LogLevelDebug, "FetchOldest start connectionURL: %s, fromDate: %v, untilDate: %v, ids: %v\n", f.ConnectionURL, fromDate, untilDate, ids)
 	pointSets, points, fiapErr, err = f.FetchByIdsWithKey(model.UserInputKeyNoID{
@@ -163,6 +362,36 @@ func (f *FetchClient) FetchOldest(fromDate *time.Time, untilDate *time.Time, ids
 	return pointSets, points, fiapErr, nil
 }
 
+/*
+FetchDateRange fetches data within a specified date range and set of IDs.
+
+FetchDateRangeは、指定された日付範囲とIDセット内のデータを取得します。
+
+この関数はFetchByIdWithKeyを使用し、指定された日付範囲とIDセット内のデータを取得します。
+
+以下に、FetchDateRangeの呼び出しの例と、それと同じ結果を返すFetchByIdWithKeyの呼び出しの例を示します。
+	// FetchDateRangeの呼び出しの例
+	pointSets, points, fiapErr, err := fetchClient.FetchDateRange(&fromDate, &untilDate, "id1", "id2", "id3")
+	// FetchDateRangeの呼び出しの例と同じ結果を返すFetchByIdWithKeyの呼び出しの例
+	pointSets, points, fiapErr, err := fetchClient.FetchByIdWithKey(model.UserInputKeyNoID{
+		Gteq:            &fromDate,
+		Lteq:            &untilDate,
+	}, "id1", "id2", "id3")
+
+引数
+ - fromDate: fetchするデータの開始日時
+ - untilDate: fetchするデータの終了日時
+ - ids: fetchするデータのID、複数のIDをカンマ区切りで指定可能
+
+戻り値
+ - pointSets: keysの中で指定したIDをキーとして取得したpointSetIDとPointIDのデータのmap
+ - points: keysで指定したIDをキーとして取得した時系列データのmap
+ - fiapErr: fiap通信の<error>タグを格納する構造体。タグがない場合はnil
+ - err: goのエラー情報を格納する構造体。エラーが発生した場合、スタックトレースを含むエラー情報が返される。エラーがない場合はnil。
+
+errの発生条件
+ - FetchByIdWithKeyでエラーが発生した場合
+*/
 func (f *FetchClient) FetchDateRange(fromDate *time.Time, untilDate *time.Time, ids ...string) (pointSets map[string](model.ProcessedPointSet), points map[string]([]model.Value), fiapErr *model.Error, err error) {
 	tools.LogPrintf(tools.LogLevelDebug, "FetchDateRange start, connectionURL: %s, fromDate: %v, untilDate: %v,  ids: %v\n", f.ConnectionURL, fromDate, untilDate, ids)
 	pointSets, points, fiapErr, err = f.FetchByIdsWithKey(
